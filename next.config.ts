@@ -1,9 +1,14 @@
 import type { NextConfig } from "next";
 
+const basePath = "/openclaw-presentation";
+
 const nextConfig: NextConfig = {
   output: "export",
-  basePath: "/openclaw-presentation",
-  assetPrefix: "/openclaw-presentation/",
+  basePath,
+  assetPrefix: `${basePath}/`,
+  env: {
+    NEXT_PUBLIC_BASE_PATH: basePath,
+  },
 };
 
 export default nextConfig;

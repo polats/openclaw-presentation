@@ -1,10 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import { AbsoluteFill, useCurrentFrame, staticFile, useVideoConfig } from 'remotion';
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
 
 export const StarSlide: React.FC<{
   primaryColor?: string;
   secondaryColor?: string;
-}> = ({ primaryColor = '#BAFF00', secondaryColor = '#D9D6D6' }) => {
+  imageSrc?: string;
+}> = ({ primaryColor = '#BAFF00', secondaryColor = '#D9D6D6', imageSrc }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig(); // use fps to determine time
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -29,7 +30,8 @@ export const StarSlide: React.FC<{
     // Only load image and initialize particles once
     if (!isInitializedRef.current) {
       const img = new Image();
-      img.src = staticFile('allstars.png');
+      img.crossOrigin = 'anonymous';
+      img.src = imageSrc || '/allstars.png';
       img.onload = () => {
         const scale = Math.min(rect.width / img.width, rect.height / img.height);
         const tempCanvas = document.createElement('canvas');
