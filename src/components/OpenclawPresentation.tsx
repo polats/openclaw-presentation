@@ -19,7 +19,7 @@ export const OpenclawPresentation: React.FC = () => {
       
       {/* Slide 0: Stars */}
       <Sequence from={currentFrame} durationInFrames={150}>
-        <StarSlide imageSrc={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/allstars.png`} />
+        <StarSlide />
       </Sequence>
       
       {/* Slide 1: Title */}
