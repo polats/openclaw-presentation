@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, useCurrentFrame, staticFile, useVideoConfig } from 'remotion';
 
 export const StarSlide: React.FC<{
   primaryColor?: string;
@@ -31,7 +31,7 @@ export const StarSlide: React.FC<{
     if (!isInitializedRef.current) {
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      img.src = imageSrc || '/allstars.png';
+      img.src = imageSrc || staticFile('allstars.png');
       img.onload = () => {
         const scale = Math.min(rect.width / img.width, rect.height / img.height);
         const tempCanvas = document.createElement('canvas');
