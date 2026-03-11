@@ -6,14 +6,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "studio": "remotion studio src/remotion/Root.tsx"
   },
   "dependencies": {
+    "@remotion/google-fonts": "^4.0.434",
+    "@remotion/player": "^4.0.434",
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "remotion": "^4.0.434"
   },
   "devDependencies": {
+    "@remotion/cli": "^4.0.434",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
