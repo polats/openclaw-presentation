@@ -25,10 +25,13 @@ const SLIDES = [
   { name: 'Outro', start: 2940, duration: 150 },
 ];
 
+const SWIPE_THRESHOLD = 50;
+
 export default function Presentation() {
   const playerRef = useRef<PlayerRef>(null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [currentFrame, setCurrentFrame] = useState(0);
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
   const goToSlide = useCallback((index: number) => {
     const clamped = Math.max(0, Math.min(index, SLIDES.length - 1));
@@ -114,7 +117,7 @@ export default function Presentation() {
     }}>
       {/* Player */}
       <div
-        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0, cursor: 'pointer' }}
+        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0, cursor: 'pointer', touchAction: 'none' }}
         onClick={() => {
           const player = playerRef.current;
           if (!player) return;
@@ -122,6 +125,38 @@ export default function Presentation() {
             player.pause();
           } else {
             player.play();
+          }
+        }}
+        onTouchStart={(e) => {
+          touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
+        }}
+        onTouchEnd={(e) => {
+          if (!touchStartRef.current) return;
+          const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
+          const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
+          const dt = Date.now() - touchStartRef.current.time;
+          touchStartRef.current = null;
+
+          // If horizontal swipe exceeds threshold, navigate slides
+          if (Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy)) {
+            e.preventDefault();
+            if (dx < 0) {
+              goToSlide(currentSlideIndex + 1);
+            } else {
+              goToSlide(currentSlideIndex - 1);
+            }
+            return;
+          }
+
+          // Short tap (< 300ms, minimal movement) = toggle play/pause
+          if (dt < 300 && Math.abs(dx) < 20 && Math.abs(dy) < 20) {
+            const player = playerRef.current;
+            if (!player) return;
+            if (player.isPlaying()) {
+              player.pause();
+            } else {
+              player.play();
+            }
           }
         }}
       >
@@ -140,9 +175,8 @@ export default function Presentation() {
         />
       </div>
 
-      {/* Slide scrubber */}
+      {/* Slide scrubber - desktop: labeled buttons, mobile: dot indicators */}
       <div style={{
-        height: '48px',
         display: 'flex',
         alignItems: 'stretch',
         backgroundColor: '#111',
@@ -161,6 +195,7 @@ export default function Presentation() {
             <button
               key={slide.name}
               onClick={() => goToSlide(i)}
+              className="scrubber-btn"
               style={{
                 flex: 1,
                 border: 'none',
@@ -168,7 +203,7 @@ export default function Presentation() {
                 background: 'transparent',
                 position: 'relative',
                 cursor: 'pointer',
-                padding: '0 8px',
+                padding: '0 4px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -178,6 +213,7 @@ export default function Presentation() {
                 textTransform: 'uppercase',
                 transition: 'color 0.15s',
                 overflow: 'hidden',
+                minWidth: 0,
               }}
             >
               {/* Progress fill */}
@@ -190,7 +226,7 @@ export default function Presentation() {
                 backgroundColor: isActive ? 'rgba(186, 255, 0, 0.1)' : 'rgba(255,255,255,0.03)',
                 transition: isActive ? 'none' : 'width 0.3s',
               }} />
-              {/* Active indicator dot */}
+              {/* Active indicator line */}
               {isActive && (
                 <div style={{
                   position: 'absolute',
@@ -201,13 +237,35 @@ export default function Presentation() {
                   backgroundColor: '#BAFF00',
                 }} />
               )}
-              <span style={{ position: 'relative', zIndex: 1 }}>
+              {/* Desktop: slide name, Mobile: dot */}
+              <span className="scrubber-label" style={{ position: 'relative', zIndex: 1 }}>
                 {slide.name}
               </span>
+              <span className="scrubber-dot" style={{
+                position: 'relative',
+                zIndex: 1,
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: isActive ? '#BAFF00' : '#444',
+                display: 'none',
+                flexShrink: 0,
+              }} />
             </button>
           );
         })}
       </div>
+
+      <style>{`
+        .scrubber-btn { height: 48px; }
+        .scrubber-dot { display: none !important; }
+        .scrubber-label { display: inline !important; }
+        @media (max-width: 768px) {
+          .scrubber-btn { height: 36px; }
+          .scrubber-dot { display: block !important; }
+          .scrubber-label { display: none !important; }
+        }
+      `}</style>
     </div>
   );
 }
