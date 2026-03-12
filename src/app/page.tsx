@@ -7,7 +7,7 @@ import { OpenclawPresentation } from '../components/OpenclawPresentation';
 import { loadFont } from '@remotion/google-fonts/PixelifySans';
 loadFont();
 
-const TOTAL_FRAMES = 3180;
+const TOTAL_FRAMES = 3090;
 const FPS = 30;
 
 const SLIDES = [
@@ -20,9 +20,9 @@ const SLIDES = [
   { name: 'Done!', start: 1620, duration: 300 },
   { name: 'Radio', start: 1920, duration: 300 },
   { name: 'Game', start: 2220, duration: 300 },
-  { name: 'Features', start: 2520, duration: 210 },
-  { name: 'Code', start: 2730, duration: 300 },
-  { name: 'Outro', start: 3030, duration: 150 },
+  { name: 'Why', start: 2520, duration: 210 },
+  { name: 'Reflect', start: 2730, duration: 210 },
+  { name: 'Outro', start: 2940, duration: 150 },
 ];
 
 export default function Presentation() {

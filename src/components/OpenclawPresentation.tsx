@@ -6,6 +6,7 @@ import { CodeSlide } from './CodeSlide';
 import { OutroSlide } from './OutroSlide';
 import { StarSlide } from './StarSlide';
 import { ScreenshotSlide } from './ScreenshotSlide';
+import { DiagramSlide } from './DiagramSlide';
 import { VideoSlide } from './VideoSlide';
 
 export const OpenclawPresentation: React.FC = () => {
@@ -19,12 +20,12 @@ export const OpenclawPresentation: React.FC = () => {
   const HOWTO1_DURATION = 300; // 10 seconds
   const HOWTO2_DURATION = 300; // 10 seconds
   const FEATURE_DURATION = 210; // 7 seconds
-  const CODE_DURATION = 300; // 10 seconds
+  const REFLECTIONS_DURATION = 210; // 7 seconds
   const OUTRO_DURATION = 150; // 5 seconds
 
   let currentFrame = 0;
 
-  const TOTAL_DURATION = TITLE_DURATION + AGENDA_DURATION + INSTALL_DURATION + NIM_KEY_DURATION + DEPLOY_DURATION + CONFIG_DURATION + DONE_DURATION + HOWTO1_DURATION + HOWTO2_DURATION + FEATURE_DURATION + CODE_DURATION + OUTRO_DURATION;
+  const TOTAL_DURATION = TITLE_DURATION + AGENDA_DURATION + INSTALL_DURATION + NIM_KEY_DURATION + DEPLOY_DURATION + CONFIG_DURATION + DONE_DURATION + HOWTO1_DURATION + HOWTO2_DURATION + FEATURE_DURATION + REFLECTIONS_DURATION + OUTRO_DURATION;
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#0f1014' }}>
@@ -146,32 +147,31 @@ export const OpenclawPresentation: React.FC = () => {
       {/* Slide 9: Features */}
       {(() => { currentFrame += HOWTO2_DURATION; return null; })()}
       <Sequence from={currentFrame} durationInFrames={FEATURE_DURATION}>
+        <DiagramSlide
+          title="Why You Need It"
+          primaryColor="#BAFF00"
+        />
+      </Sequence>
+
+      {/* Reflections */}
+      {(() => { currentFrame += FEATURE_DURATION; return null; })()}
+      <Sequence from={currentFrame} durationInFrames={REFLECTIONS_DURATION}>
         <FeatureSlide
-          title="Why Openclaw?"
+          title="Reflections"
           features={[
-            "Seamlessly integrates into your stack",
-            "Understands deep architectural context",
-            "Generates entire UI systems effortlessly"
+            "Tech is moving fast, some Openclaw functionalities are already in Claude",
+            "Is your use case already achievable without needing Openclaw?",
+            "Or you can just have fun and invent new agent apps like Apocalypse Radio"
           ]}
           primaryColor="#BAFF00"
         />
       </Sequence>
 
-      {/* Slide 3: Code Demonstration */}
-      {(() => { currentFrame += FEATURE_DURATION; return null; })()}
-      <Sequence from={currentFrame} durationInFrames={CODE_DURATION}>
-        <CodeSlide
-          title="Effortless Commands"
-          codeText="openclaw generate --theme cosmic --stack nextjs,remotion\n\n> Initializing Next.js environment...\n> Building Remotion Presentation UI...\n> Done in 4.2s"
-          primaryColor="#BAFF00"
-        />
-      </Sequence>
-
-      {/* Slide 4: Outro */}
-      {(() => { currentFrame += CODE_DURATION; return null; })()}
+      {/* Outro */}
+      {(() => { currentFrame += REFLECTIONS_DURATION; return null; })()}
       <Sequence from={currentFrame} durationInFrames={OUTRO_DURATION}>
         <OutroSlide
-          text="Start building your agents today."
+          text="Go build something fun!"
           url="cosmiclabs.org"
           primaryColor="#BAFF00"
         />

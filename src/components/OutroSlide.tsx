@@ -54,13 +54,15 @@ export const OutroSlide: React.FC<OutroSlideProps> = ({ text, url, primaryColor 
 
       <div
         style={{
-          padding: '20px 40px',
+          padding: '24px 50px',
           backgroundColor: '#BAFF00',
-          color: 'white',
+          color: '#0a0a0a',
           borderRadius: '100px',
           fontSize: '2.5rem',
-          fontWeight: 700,
-          boxShadow: `0 20px 40px ${primaryColor}40`,
+          fontWeight: 800,
+          fontFamily: 'Inter, system-ui, sans-serif',
+          letterSpacing: '0.02em',
+          boxShadow: `0 20px 40px ${primaryColor}40, 0 0 60px ${primaryColor}30`,
           transform: `scale(${interpolate(scaleSpring, [0, 1], [0.5, 1], { extrapolateLeft: 'clamp' })})`,
           opacity: interpolate(frame, [15, 25], [0, 1], { extrapolateRight: 'clamp' }),
         }}
