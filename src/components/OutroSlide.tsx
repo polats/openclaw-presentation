@@ -67,7 +67,14 @@ export const OutroSlide: React.FC<OutroSlideProps> = ({ text, url, primaryColor 
           opacity: interpolate(frame, [15, 25], [0, 1], { extrapolateRight: 'clamp' }),
         }}
       >
-        {url}
+        <a
+          href={`https://${url}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: '#0a0a0a', textDecoration: 'none' }}
+        >
+          {url}
+        </a>
       </div>
     </AbsoluteFill>
   );
