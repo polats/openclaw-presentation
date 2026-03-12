@@ -11,17 +11,17 @@ const TOTAL_FRAMES = 3090;
 const FPS = 30;
 
 const SLIDES = [
-  { name: 'Title', start: 0, duration: 300 },
-  { name: 'Agenda', start: 300, duration: 210 },
-  { name: 'Installing', start: 510, duration: 210 },
-  { name: 'NIM Key', start: 720, duration: 300 },
-  { name: 'Deploy', start: 1020, duration: 300 },
-  { name: 'Config', start: 1320, duration: 300 },
-  { name: 'Done!', start: 1620, duration: 300 },
-  { name: 'Radio', start: 1920, duration: 300 },
-  { name: 'Game', start: 2220, duration: 300 },
-  { name: 'Why', start: 2520, duration: 210 },
-  { name: 'Reflect', start: 2730, duration: 210 },
+  { name: 'Title', start: 0, duration: 120 },
+  { name: 'Agenda', start: 300, duration: 30 },
+  { name: 'Installing', start: 510, duration: 30 },
+  { name: 'NIM Key', start: 720, duration: 120 },
+  { name: 'Deploy', start: 1020, duration: 120 },
+  { name: 'Config', start: 1320, duration: 120 },
+  { name: 'Done!', start: 1620, duration: 120 },
+  { name: 'Radio', start: 1920, duration: 120 },
+  { name: 'Game', start: 2220, duration: 120 },
+  { name: 'Why', start: 2520, duration: 30 },
+  { name: 'Reflect', start: 2730, duration: 30 },
   { name: 'Outro', start: 2940, duration: 150 },
 ];
 
@@ -38,7 +38,18 @@ export default function Presentation() {
     setCurrentFrame(SLIDES[clamped].start);
   }, []);
 
-  // Track current frame to highlight active slide
+  // Auto-start on load
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player) return;
+    // Small delay to let the player initialize
+    const timeout = setTimeout(() => {
+      player.play();
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  // Track current frame and auto-advance to next slide
   useEffect(() => {
     const player = playerRef.current;
     if (!player) return;
@@ -48,12 +59,16 @@ export default function Presentation() {
       setCurrentFrame(frame);
       const idx = SLIDES.findLastIndex((s) => frame >= s.start);
       if (idx >= 0) {
-        // Pause at the end of the current slide
         const slide = SLIDES[idx];
         const slideEnd = slide.start + slide.duration - 1;
         if (frame >= slideEnd && player.isPlaying()) {
-          player.pause();
-          player.seekTo(slideEnd);
+          // Auto-advance to next slide, or pause on last
+          if (idx < SLIDES.length - 1) {
+            goToSlide(idx + 1);
+          } else {
+            player.pause();
+            player.seekTo(slideEnd);
+          }
         }
         setCurrentSlideIndex(idx);
       }
@@ -61,7 +76,7 @@ export default function Presentation() {
 
     player.addEventListener('frameupdate', onFrameUpdate);
     return () => player.removeEventListener('frameupdate', onFrameUpdate);
-  }, []);
+  }, [goToSlide]);
 
   // Arrow key navigation
   useEffect(() => {
@@ -76,7 +91,6 @@ export default function Presentation() {
         e.preventDefault();
         const player = playerRef.current;
         if (!player) return;
-        // Toggle play/pause
         if (player.isPlaying()) {
           player.pause();
         } else {
