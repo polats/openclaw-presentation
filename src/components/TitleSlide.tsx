@@ -40,30 +40,30 @@ export const TitleSlide: React.FC<TitleSlideProps> = ({
     },
   });
 
-  // Aggressive 3D Rotation (Tilting down)
-  const rotationRotateX = interpolate(frame, [0, 150], [45, -5], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  
-  // High contrast text fade
-  const titleOpacity = interpolate(frame, [15, 25], [0, 1], { extrapolateRight: 'clamp' });
-  const subtitleOpacity = interpolate(frame, [25, 35], [0, 1], { extrapolateRight: 'clamp' });
-
-  // Shine sweep across the title text (starts after title fades in)
-  const shinePosition = interpolate(frame, [30, 90], [-100, 200], {
+  // Aggressive 3D Rotation (Tilting down) - completes by frame 60
+  const rotationRotateX = interpolate(frame, [0, 60], [45, -5], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
 
-  // Secondary subtle shine that loops
-  const shineLoop = interpolate(frame % 120, [0, 120], [-100, 200]);
-  const shineLoopOpacity = frame > 90 ? 0.3 : 0;
+  // High contrast text fade - faster
+  const titleOpacity = interpolate(frame, [8, 16], [0, 1], { extrapolateRight: 'clamp' });
+  const subtitleOpacity = interpolate(frame, [16, 24], [0, 1], { extrapolateRight: 'clamp' });
 
-  // Glow pulse on the border after entrance
-  const glowPulse = frame > 40
-    ? 0.6 + Math.sin((frame - 40) * 0.08) * 0.4
-    : interpolate(frame, [20, 40], [0, 0.6], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  // Shine sweep across the title text - starts earlier, finishes by frame 50
+  const shinePosition = interpolate(frame, [15, 50], [-100, 200], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  // Secondary subtle shine that loops faster
+  const shineLoop = interpolate(frame % 60, [0, 60], [-100, 200]);
+  const shineLoopOpacity = frame > 50 ? 0.3 : 0;
+
+  // Glow pulse on the border after entrance - starts earlier
+  const glowPulse = frame > 25
+    ? 0.6 + Math.sin((frame - 25) * 0.12) * 0.4
+    : interpolate(frame, [10, 25], [0, 0.6], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   return (
     <AbsoluteFill

@@ -12,16 +12,16 @@ const FPS = 30;
 
 const SLIDES = [
   { name: 'Title', start: 0, duration: 120 },
-  { name: 'Agenda', start: 300, duration: 30 },
-  { name: 'Installing', start: 510, duration: 30 },
+  { name: 'Agenda', start: 300, duration: 150 },
+  { name: 'Installing', start: 510, duration: 150 },
   { name: 'NIM Key', start: 720, duration: 120 },
   { name: 'Deploy', start: 1020, duration: 120 },
   { name: 'Config', start: 1320, duration: 120 },
   { name: 'Done!', start: 1620, duration: 120 },
   { name: 'Radio', start: 1920, duration: 120 },
   { name: 'Game', start: 2220, duration: 120 },
-  { name: 'Why', start: 2520, duration: 30 },
-  { name: 'Reflect', start: 2730, duration: 30 },
+  { name: 'Why', start: 2520, duration: 150 },
+  { name: 'Reflect', start: 2730, duration: 150 },
   { name: 'Outro', start: 2940, duration: 150 },
 ];
 
@@ -140,7 +140,6 @@ export default function Presentation() {
         userSelect: 'none',
       }}>
         {SLIDES.map((slide, i) => {
-          const widthPercent = (slide.duration / TOTAL_FRAMES) * 100;
           const isActive = i === currentSlideIndex;
           const progress = isActive
             ? Math.min(1, (currentFrame - slide.start) / slide.duration)
@@ -151,7 +150,7 @@ export default function Presentation() {
               key={slide.name}
               onClick={() => goToSlide(i)}
               style={{
-                width: `${widthPercent}%`,
+                flex: 1,
                 border: 'none',
                 borderRight: i < SLIDES.length - 1 ? '1px solid #222' : 'none',
                 background: 'transparent',

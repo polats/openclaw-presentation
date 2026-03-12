@@ -52,11 +52,7 @@ export const DiagramSlide: React.FC<DiagramSlideProps> = ({ title, primaryColor 
   // Pulsing glow on the center
   const pulse = frame > 60 ? 0.5 + Math.sin((frame - 60) * 0.06) * 0.5 : 0;
 
-  // Connecting line animation
-  const lineProgress = interpolate(frame, [20, 50], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  // lineProgress is now per-section, computed inside the map below
 
   return (
     <AbsoluteFill
@@ -165,6 +161,12 @@ export const DiagramSlide: React.FC<DiagramSlideProps> = ({ title, primaryColor 
             extrapolateRight: 'clamp',
           });
 
+          // Line appears alongside its card
+          const lineProgress = interpolate(frame - section.delay, [0, 20], [0, 1], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+          });
+
           return (
             <React.Fragment key={i}>
               {/* Connecting line */}
@@ -196,7 +198,7 @@ export const DiagramSlide: React.FC<DiagramSlideProps> = ({ title, primaryColor 
                     y2={500 + y}
                     stroke={primaryColor}
                     strokeWidth="2"
-                    strokeOpacity={0.4}
+                    strokeOpacity={0.4 * lineProgress}
                     strokeDasharray="8 4"
                     strokeDashoffset={interpolate(lineProgress, [0, 1], [100, 0])}
                   />
