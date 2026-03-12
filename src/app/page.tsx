@@ -118,7 +118,10 @@ export default function Presentation() {
       {/* Player */}
       <div
         style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0, cursor: 'pointer', touchAction: 'none' }}
-        onClick={() => {
+        onClick={(e) => {
+          // Let clicks on links pass through
+          const target = e.target as HTMLElement;
+          if (target.closest('a')) return;
           const player = playerRef.current;
           if (!player) return;
           if (player.isPlaying()) {
@@ -148,8 +151,9 @@ export default function Presentation() {
             return;
           }
 
-          // Short tap (< 300ms, minimal movement) = toggle play/pause
-          if (dt < 300 && Math.abs(dx) < 20 && Math.abs(dy) < 20) {
+          // Short tap (< 300ms, minimal movement) = toggle play/pause, unless tapping a link
+          const target = e.target as HTMLElement;
+          if (dt < 300 && Math.abs(dx) < 20 && Math.abs(dy) < 20 && !target.closest('a')) {
             const player = playerRef.current;
             if (!player) return;
             if (player.isPlaying()) {
@@ -170,7 +174,6 @@ export default function Presentation() {
           style={{
             width: '100%',
             height: '100%',
-            pointerEvents: 'none',
           }}
         />
       </div>
