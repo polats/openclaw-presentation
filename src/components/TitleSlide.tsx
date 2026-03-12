@@ -50,10 +50,25 @@ export const TitleSlide: React.FC<TitleSlideProps> = ({
   const titleOpacity = interpolate(frame, [15, 25], [0, 1], { extrapolateRight: 'clamp' });
   const subtitleOpacity = interpolate(frame, [25, 35], [0, 1], { extrapolateRight: 'clamp' });
 
+  // Shine sweep across the title text (starts after title fades in)
+  const shinePosition = interpolate(frame, [30, 90], [-100, 200], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  // Secondary subtle shine that loops
+  const shineLoop = interpolate(frame % 120, [0, 120], [-100, 200]);
+  const shineLoopOpacity = frame > 90 ? 0.3 : 0;
+
+  // Glow pulse on the border after entrance
+  const glowPulse = frame > 40
+    ? 0.6 + Math.sin((frame - 40) * 0.08) * 0.4
+    : interpolate(frame, [20, 40], [0, 0.6], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
   return (
     <AbsoluteFill
       style={{
-        backgroundColor: '#D9D6D6', // Cosmic Labs light silver background
+        backgroundColor: 'transparent',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -90,23 +105,51 @@ export const TitleSlide: React.FC<TitleSlideProps> = ({
         {/* Central High-Contrast Text Area */}
         <div
           style={{
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(240,240,245,0.9) 100%)',
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(15,16,20,0.85) 100%)',
             backdropFilter: 'blur(30px)',
             borderTop: `2px solid ${primaryColor}`,
-            borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
-            borderLeft: '1px solid rgba(0, 0, 0, 0.05)',
-            borderRight: '1px solid rgba(0, 0, 0, 0.05)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+            borderLeft: '1px solid rgba(255, 255, 255, 0.05)',
+            borderRight: '1px solid rgba(255, 255, 255, 0.05)',
             padding: '100px 140px',
-            boxShadow: `0 30px 60px rgba(0,0,0,0.1), 0 0 50px ${primaryColor}60`,
-            transform: 'translateZ(100px)', // Lift off heavily
+            boxShadow: `0 30px 60px rgba(0,0,0,0.4), 0 0 ${50 + glowPulse * 30}px ${primaryColor}${Math.round(glowPulse * 96).toString(16).padStart(2, '0')}`,
+            transform: 'translateZ(100px)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             textAlign: 'center',
             minWidth: '800px',
-            clipPath: 'polygon(5% 0, 100% 0, 95% 100%, 0 100%)', // Sharp, aggressive slant
+            clipPath: 'polygon(5% 0, 100% 0, 95% 100%, 0 100%)',
+            position: 'relative',
+            overflow: 'hidden',
           }}
         >
+          {/* Shine sweep overlay */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(105deg, transparent ${shinePosition - 20}%, rgba(186,255,0,0.15) ${shinePosition}%, transparent ${shinePosition + 20}%)`,
+              pointerEvents: 'none',
+              zIndex: 2,
+            }}
+          />
+          {/* Looping subtle shine */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(105deg, transparent ${shineLoop - 15}%, rgba(255,255,255,${shineLoopOpacity}) ${shineLoop}%, transparent ${shineLoop + 15}%)`,
+              pointerEvents: 'none',
+              zIndex: 2,
+            }}
+          />
           <h1
             style={{
               fontSize: '6rem',
@@ -118,10 +161,11 @@ export const TitleSlide: React.FC<TitleSlideProps> = ({
               letterSpacing: '-0.02em',
               opacity: titleOpacity,
               transform: 'translateZ(50px)',
-              background: `linear-gradient(180deg, #000000 0%, #333333 100%)`,
+              backgroundImage: `linear-gradient(105deg, #ffffff ${shinePosition - 30}%, ${primaryColor} ${shinePosition}%, #ffffff ${shinePosition + 30}%)`,
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              textShadow: `0 10px 20px rgba(0,0,0,0.2)`,
+              position: 'relative',
+              zIndex: 1,
             }}
           >
             {titleText}
@@ -131,13 +175,15 @@ export const TitleSlide: React.FC<TitleSlideProps> = ({
             style={{
               fontSize: '2rem',
               fontWeight: 500,
-              color: secondaryColor,
+              color: 'rgba(255, 255, 255, 0.7)',
               fontFamily: '"Pixelify Sans", Inter, sans-serif',
               textTransform: 'uppercase',
               letterSpacing: '0.2em',
               opacity: subtitleOpacity,
               transform: 'translateZ(25px)',
-              textShadow: `0 0 20px ${secondaryColor}40`,
+              textShadow: `0 0 20px ${primaryColor}40`,
+              position: 'relative',
+              zIndex: 1,
             }}
           >
             {subtitleText}

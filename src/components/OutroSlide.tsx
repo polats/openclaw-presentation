@@ -20,12 +20,12 @@ export const OutroSlide: React.FC<OutroSlideProps> = ({ text, url, primaryColor 
   return (
     <AbsoluteFill
       style={{
-        backgroundColor: '#D9D6D6',
+        backgroundColor: 'transparent',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        color: 'black',
+        color: 'white',
         fontFamily: 'Inter, sans-serif',
       }}
     >
@@ -56,7 +56,7 @@ export const OutroSlide: React.FC<OutroSlideProps> = ({ text, url, primaryColor 
         style={{
           padding: '20px 40px',
           backgroundColor: '#BAFF00',
-          color: 'black',
+          color: 'white',
           borderRadius: '100px',
           fontSize: '2.5rem',
           fontWeight: 700,

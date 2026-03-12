@@ -28,7 +28,7 @@ export const CodeSlide: React.FC<CodeSlideProps> = ({ title, codeText, primaryCo
   return (
     <AbsoluteFill
       style={{
-        backgroundColor: '#050508',
+        backgroundColor: 'transparent',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',

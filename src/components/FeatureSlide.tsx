@@ -25,14 +25,22 @@ export const FeatureSlide: React.FC<FeatureSlideProps> = ({ title, features, pri
   return (
     <AbsoluteFill
       style={{
-        backgroundColor: '#D9D6D6',
+        backgroundColor: 'transparent',
         display: 'flex',
         flexDirection: 'column',
         padding: '80px 120px',
-        color: 'black',
+        color: 'white',
         fontFamily: 'Inter, sans-serif',
       }}
     >
+      {/* Semi-transparent backdrop */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        backgroundColor: 'rgba(15, 16, 20, 0.75)',
+        backdropFilter: 'blur(8px)',
+      }} />
+
       <div style={{ position: 'absolute', top: '-20%', right: '-20%', width: '50%', height: '50%', background: `radial-gradient(circle, ${primaryColor}30 0%, transparent 70%)`, filter: 'blur(100px)' }} />
 
       <h1
@@ -47,12 +55,13 @@ export const FeatureSlide: React.FC<FeatureSlideProps> = ({ title, features, pri
           width: 'fit-content',
           transform: `translateY(${titleY}px)`,
           opacity: titleOpacity,
+          position: 'relative',
         }}
       >
         {title}
       </h1>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', marginTop: '40px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', marginTop: '40px', position: 'relative' }}>
         {features.map((feature, index) => {
           // Stagger the entrance of each feature by 15 frames
           const featureFrame = frame - (index * 15 + 15);
@@ -78,7 +87,7 @@ export const FeatureSlide: React.FC<FeatureSlideProps> = ({ title, features, pri
                 opacity: featureOpacity,
                 fontSize: '2.5rem',
                 fontWeight: 500,
-                color: '#333333',
+                color: 'rgba(255, 255, 255, 0.85)',
               }}
             >
               <div

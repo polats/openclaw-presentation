@@ -7,15 +7,22 @@ import { OpenclawPresentation } from '../components/OpenclawPresentation';
 import { loadFont } from '@remotion/google-fonts/PixelifySans';
 loadFont();
 
-const TOTAL_FRAMES = 960;
+const TOTAL_FRAMES = 3180;
 const FPS = 30;
 
 const SLIDES = [
-  { name: 'Stars', start: 0, duration: 150 },
-  { name: 'Title', start: 150, duration: 150 },
-  { name: 'Features', start: 300, duration: 210 },
-  { name: 'Code', start: 510, duration: 300 },
-  { name: 'Outro', start: 810, duration: 150 },
+  { name: 'Title', start: 0, duration: 300 },
+  { name: 'Agenda', start: 300, duration: 210 },
+  { name: 'Installing', start: 510, duration: 210 },
+  { name: 'NIM Key', start: 720, duration: 300 },
+  { name: 'Deploy', start: 1020, duration: 300 },
+  { name: 'Config', start: 1320, duration: 300 },
+  { name: 'Done!', start: 1620, duration: 300 },
+  { name: 'Radio', start: 1920, duration: 300 },
+  { name: 'Game', start: 2220, duration: 300 },
+  { name: 'Features', start: 2520, duration: 210 },
+  { name: 'Code', start: 2730, duration: 300 },
+  { name: 'Outro', start: 3030, duration: 150 },
 ];
 
 export default function Presentation() {
@@ -25,8 +32,8 @@ export default function Presentation() {
 
   const goToSlide = useCallback((index: number) => {
     const clamped = Math.max(0, Math.min(index, SLIDES.length - 1));
-    playerRef.current?.pause();
     playerRef.current?.seekTo(SLIDES[clamped].start);
+    playerRef.current?.play();
     setCurrentSlideIndex(clamped);
     setCurrentFrame(SLIDES[clamped].start);
   }, []);
@@ -40,7 +47,16 @@ export default function Presentation() {
       const frame = player.getCurrentFrame();
       setCurrentFrame(frame);
       const idx = SLIDES.findLastIndex((s) => frame >= s.start);
-      if (idx >= 0) setCurrentSlideIndex(idx);
+      if (idx >= 0) {
+        // Pause at the end of the current slide
+        const slide = SLIDES[idx];
+        const slideEnd = slide.start + slide.duration - 1;
+        if (frame >= slideEnd && player.isPlaying()) {
+          player.pause();
+          player.seekTo(slideEnd);
+        }
+        setCurrentSlideIndex(idx);
+      }
     };
 
     player.addEventListener('frameupdate', onFrameUpdate);
