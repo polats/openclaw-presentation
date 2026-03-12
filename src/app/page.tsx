@@ -113,7 +113,18 @@ export default function Presentation() {
       overflow: 'hidden',
     }}>
       {/* Player */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
+      <div
+        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0, cursor: 'pointer' }}
+        onClick={() => {
+          const player = playerRef.current;
+          if (!player) return;
+          if (player.isPlaying()) {
+            player.pause();
+          } else {
+            player.play();
+          }
+        }}
+      >
         <Player
           ref={playerRef}
           component={OpenclawPresentation}
@@ -124,16 +135,7 @@ export default function Presentation() {
           style={{
             width: '100%',
             height: '100%',
-          }}
-          clickToPlay={false}
-          onClick={() => {
-            const player = playerRef.current;
-            if (!player) return;
-            if (player.isPlaying()) {
-              player.pause();
-            } else {
-              player.play();
-            }
+            pointerEvents: 'none',
           }}
         />
       </div>
