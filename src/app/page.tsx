@@ -125,6 +125,16 @@ export default function Presentation() {
             width: '100%',
             height: '100%',
           }}
+          clickToPlay={false}
+          onClick={() => {
+            const player = playerRef.current;
+            if (!player) return;
+            if (player.isPlaying()) {
+              player.pause();
+            } else {
+              player.play();
+            }
+          }}
         />
       </div>
 
