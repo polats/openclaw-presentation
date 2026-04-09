@@ -6,6 +6,7 @@ import {
   useVideoConfig,
   spring,
   interpolate,
+  staticFile,
 } from 'remotion';
 
 const PRIMARY = '#FF2D55';
@@ -148,11 +149,151 @@ const SplashScene: React.FC = () => {
   );
 };
 
-// ─── Scene 2: Phone Home Screen ──────────────────────────
+// ─── Scene: The Invite ───────────────────────────────────
+const inviteMessages = [
+  { title: 'Rick Dalton', body: 'hey kid, got a job for you', time: 'now', icon: '📻' },
+  { title: 'Rick Dalton', body: 'apocalypse radio needs a new artist manager', time: '1m ago', icon: '📻' },
+  { title: 'Rick Dalton', body: 'check these guys out and pick one', time: '2m ago', icon: '📻' },
+  { title: 'Rick Dalton', body: 'instagram.com/stardamage/artists', time: '3m ago', icon: '📻', isLink: true },
+  { title: 'Rick Dalton', body: "don't screw this up 😤", time: '3m ago', icon: '📻' },
+];
+
+const InviteScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  // Exit
+  const EXIT_FRAME = 170;
+  const exitOpacity = interpolate(frame, [EXIT_FRAME, EXIT_FRAME + 18], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  const visibleCount = inviteMessages.filter((_, i) => frame >= 15 + i * 25).length;
+
+  return (
+    <AbsoluteFill style={{ backgroundColor: '#000', fontFamily: FONT, opacity: exitOpacity }}>
+      {/* Home screen background */}
+      <AbsoluteFill>
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)', opacity: 0.7 }} />
+        <StatusBar />
+        <div style={{ textAlign: 'center', marginTop: 40, position: 'relative', zIndex: 1 }}>
+          <div style={{ fontSize: 58, fontWeight: 200, color: '#fff', letterSpacing: -2 }}>9:41</div>
+          <div style={{ fontSize: 14, color: '#ccc', marginTop: 2 }}>Wednesday, April 9</div>
+        </div>
+
+        {/* App grid (dims as notifications stack) */}
+        <div style={{
+          flex: 1, padding: '40px 28px',
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '20px 16px', alignContent: 'start',
+          position: 'relative', zIndex: 1,
+          opacity: interpolate(visibleCount, [0, 3], [1, 0.3], { extrapolateRight: 'clamp' }),
+          filter: `blur(${interpolate(visibleCount, [0, 3], [0, 2], { extrapolateRight: 'clamp' })}px)`,
+        }}>
+          {homeApps.map((app) => (
+            <div key={app.name} style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+            }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: 14, background: app.color,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+              }}>{app.icon}</div>
+              <span style={{ fontSize: 10, color: '#fff', textAlign: 'center', opacity: 0.9 }}>{app.name}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 24, padding: '12px 0 28px', position: 'relative', zIndex: 1,
+          opacity: interpolate(visibleCount, [0, 3], [1, 0.3], { extrapolateRight: 'clamp' }),
+        }}>
+          {['📞', '🧭', '💬', '🎵'].map((icon, i) => (
+            <div key={i} style={{
+              width: 52, height: 52, borderRadius: 13,
+              background: 'rgba(100,100,110,0.5)', backdropFilter: 'blur(10px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+            }}>{icon}</div>
+          ))}
+        </div>
+      </AbsoluteFill>
+
+      {/* Notification banners */}
+      <div style={{
+        position: 'absolute', top: 36, left: 10, right: 10, zIndex: 10,
+        display: 'flex', flexDirection: 'column', gap: 6,
+      }}>
+        {inviteMessages.map((n, i) => {
+          const delay = 15 + i * 25;
+          const isVisible = frame >= delay;
+          if (!isVisible) return null;
+
+          const slideY = spring({
+            fps,
+            frame: Math.max(0, frame - delay),
+            config: { damping: 14, stiffness: 120 },
+            from: -80,
+            to: 0,
+          });
+          const bannerOpacity = interpolate(frame, [delay, delay + 6], [0, 1], { extrapolateRight: 'clamp' });
+
+          const newerCount = inviteMessages.filter((_, j) => j > i && frame >= 15 + j * 25).length;
+          const compressScale = interpolate(newerCount, [0, 1, 3], [1, 0.97, 0.92], { extrapolateRight: 'clamp' });
+          const compressOpacity = interpolate(newerCount, [0, 2, 4], [1, 0.85, 0.6], { extrapolateRight: 'clamp' });
+
+          return (
+            <div
+              key={i}
+              style={{
+                background: 'rgba(40, 40, 45, 0.92)',
+                backdropFilter: 'blur(24px)',
+                borderRadius: 16,
+                padding: '10px 12px',
+                opacity: bannerOpacity * compressOpacity,
+                transform: `translateY(${slideY}px) scale(${compressScale})`,
+                transformOrigin: 'top center',
+                border: n.isLink ? '1px solid #E1306C44' : '1px solid rgba(255,255,255,0.08)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 8,
+                  background: '#FF9500', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
+                }}>{n.icon}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#ccc' }}>{n.title}</span>
+                    <span style={{ fontSize: 10, color: GRAY }}>{n.time}</span>
+                  </div>
+                  <div style={{
+                    fontSize: 13,
+                    color: n.isLink ? '#E1306C' : '#aaa',
+                    marginTop: 2, lineHeight: 1.3,
+                    textDecoration: n.isLink ? 'underline' : 'none',
+                    textDecorationColor: '#E1306C88',
+                    textUnderlineOffset: 3,
+                  }}>{n.body}</div>
+                </div>
+                {n.isLink && (
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 7,
+                    background: '#E1306C', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
+                  }}>📸</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ─── App Launch Wrapper ──────────────────────────────────
 const homeApps = [
   { name: 'Mail', color: '#007AFF', icon: '✉️' },
   { name: 'Photos', color: '#FF9500', icon: '🖼️' },
-  { name: 'Camera', color: '#555', icon: '📷' },
+  { name: 'Star Damage', color: PRIMARY, icon: '⭐' },
   { name: 'Weather', color: '#34AADC', icon: '🌤️' },
   { name: 'Instagram', color: '#E1306C', icon: '📸' },
   { name: 'Spotify', color: '#1DB954', icon: '🎵' },
@@ -164,165 +305,129 @@ const homeApps = [
   { name: 'Settings', color: '#8E8E93', icon: '⚙️' },
 ];
 
-const HomeScreenScene: React.FC = () => {
+const APP_INTRO = 25; // frames of home screen before app launches
+
+const AppLaunchTransition: React.FC<{
+  tapIndex: number;
+  children: React.ReactNode;
+}> = ({ tapIndex, children }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Spotify is index 5 — tap animation starts at frame 80
-  const TAP_FRAME = 80;
-  const spotifyTapped = frame >= TAP_FRAME;
-  const tapScale = spotifyTapped
-    ? spring({ fps, frame: Math.max(0, frame - TAP_FRAME), config: { damping: 15, stiffness: 300 }, from: 0.85, to: 1 })
+  const TAP_FRAME = 10;
+  const LAUNCH_FRAME = 16;
+
+  const tapped = frame >= TAP_FRAME;
+  const launching = frame >= LAUNCH_FRAME;
+
+  // Icon tap press
+  const tapPress = tapped
+    ? spring({ fps, frame: Math.max(0, frame - TAP_FRAME), config: { damping: 15, stiffness: 300 }, from: 0.82, to: 1 })
     : 1;
-  // Screen flash/zoom after tap
-  const screenZoom = spotifyTapped
-    ? spring({ fps, frame: Math.max(0, frame - TAP_FRAME - 8), config: { damping: 10, stiffness: 80 }, from: 1, to: 1.15 })
+
+  // Tap ring
+  const tapRingScale = tapped
+    ? spring({ fps, frame: Math.max(0, frame - TAP_FRAME), config: { damping: 8 }, from: 0.5, to: 2.2 })
+    : 0;
+  const tapRingOpacity = interpolate(frame, [TAP_FRAME, TAP_FRAME + 12], [0.7, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  // Home screen exit
+  const homeZoom = launching
+    ? spring({ fps, frame: Math.max(0, frame - LAUNCH_FRAME), config: { damping: 10, stiffness: 80 }, from: 1, to: 1.2 })
     : 1;
-  const screenFade = interpolate(frame, [TAP_FRAME + 10, TAP_FRAME + 25], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const homeOpacity = interpolate(frame, [LAUNCH_FRAME, LAUNCH_FRAME + 10], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  // App content entrance (iOS-style scale up)
+  const appScale = launching
+    ? spring({ fps, frame: Math.max(0, frame - LAUNCH_FRAME), config: { damping: 12, stiffness: 80 }, from: 0.55, to: 1 })
+    : 0;
+  const appRadius = launching
+    ? spring({ fps, frame: Math.max(0, frame - LAUNCH_FRAME), config: { damping: 12, stiffness: 80 }, from: 44, to: 0 })
+    : 44;
+  const appOpacity = interpolate(frame, [LAUNCH_FRAME, LAUNCH_FRAME + 8], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  const tappedApp = homeApps[tapIndex];
 
   return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: '#000',
+    <AbsoluteFill style={{ backgroundColor: '#000' }}>
+      {/* Home screen layer */}
+      <AbsoluteFill style={{
+        opacity: homeOpacity,
+        transform: `scale(${homeZoom})`,
         fontFamily: FONT,
-        display: 'flex',
-        flexDirection: 'column',
-        opacity: screenFade,
-        transform: `scale(${screenZoom})`,
-      }}
-    >
-      {/* Wallpaper gradient */}
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)', opacity: 0.7 }} />
+      }}>
+        {/* Wallpaper */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)', opacity: 0.7 }} />
+        <StatusBar />
+        <div style={{ textAlign: 'center', marginTop: 40, position: 'relative', zIndex: 1 }}>
+          <div style={{ fontSize: 58, fontWeight: 200, color: '#fff', letterSpacing: -2 }}>9:41</div>
+          <div style={{ fontSize: 14, color: '#ccc', marginTop: 2 }}>Wednesday, April 9</div>
+        </div>
 
-      <StatusBar />
-
-      {/* Time */}
-      <div style={{ textAlign: 'center', marginTop: 40, position: 'relative', zIndex: 1 }}>
-        <div style={{ fontSize: 58, fontWeight: 200, color: '#fff', letterSpacing: -2 }}>9:41</div>
-        <div style={{ fontSize: 14, color: '#ccc', marginTop: 2 }}>Wednesday, April 9</div>
-      </div>
-
-      {/* App grid */}
-      <div
-        style={{
-          flex: 1,
-          padding: '40px 28px',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '20px 16px',
-          alignContent: 'start',
-          position: 'relative',
-          zIndex: 1,
-        }}
-      >
-        {homeApps.map((app, i) => {
-          const delay = 5 + i * 3;
-          const iconScale = spring({
-            fps,
-            frame: Math.max(0, frame - delay),
-            config: { damping: 12, stiffness: 120 },
-            from: 0,
-            to: 1,
-          });
-          const iconOpacity = interpolate(frame, [delay, delay + 6], [0, 1], { extrapolateRight: 'clamp' });
-          const isSpotify = i === 5;
-
-          // Tap ring effect on Spotify
-          const tapRingScale = isSpotify && spotifyTapped
-            ? spring({ fps, frame: Math.max(0, frame - TAP_FRAME), config: { damping: 8 }, from: 0.5, to: 2 })
-            : 0;
-          const tapRingOpacity = isSpotify && spotifyTapped
-            ? interpolate(frame, [TAP_FRAME, TAP_FRAME + 15], [0.6, 0], { extrapolateRight: 'clamp' })
-            : 0;
-
-          return (
-            <div
-              key={app.name}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 6,
-                opacity: iconOpacity,
-                transform: `scale(${iconScale * (isSpotify ? tapScale : 1)})`,
+        {/* App grid */}
+        <div style={{
+          flex: 1, padding: '40px 28px',
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '20px 16px', alignContent: 'start',
+          position: 'relative', zIndex: 1,
+        }}>
+          {homeApps.map((app, i) => {
+            const isTap = i === tapIndex;
+            return (
+              <div key={app.name} style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                transform: `scale(${isTap ? tapPress : 1})`,
                 position: 'relative',
-              }}
-            >
-              {/* Tap ring */}
-              {isSpotify && spotifyTapped && (
+              }}>
+                {/* Tap ring */}
+                {isTap && tapped && (
+                  <div style={{
+                    position: 'absolute', width: 56, height: 56, borderRadius: 14,
+                    border: `2px solid ${tappedApp.color}`,
+                    transform: `scale(${tapRingScale})`, opacity: tapRingOpacity, top: 0,
+                  }} />
+                )}
                 <div style={{
-                  position: 'absolute',
-                  width: 56,
-                  height: 56,
-                  borderRadius: 14,
-                  border: '2px solid #1DB954',
-                  transform: `scale(${tapRingScale})`,
-                  opacity: tapRingOpacity,
-                  top: 0,
-                }} />
-              )}
-              <div
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 14,
-                  background: app.color,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 26,
-                  boxShadow: isSpotify && spotifyTapped ? '0 0 20px #1DB95488' : '0 2px 8px rgba(0,0,0,0.3)',
-                }}
-              >
-                {app.icon}
+                  width: 56, height: 56, borderRadius: 14, background: app.color,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
+                  boxShadow: isTap && tapped ? `0 0 20px ${tappedApp.color}88` : '0 2px 8px rgba(0,0,0,0.3)',
+                }}>
+                  {app.icon}
+                </div>
+                <span style={{ fontSize: 10, color: '#fff', textAlign: 'center', opacity: 0.9 }}>{app.name}</span>
               </div>
-              <span style={{ fontSize: 10, color: '#fff', textAlign: 'center', opacity: 0.9 }}>
-                {app.name}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
-      {/* Dock */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: 24,
-          padding: '12px 0 28px',
-          position: 'relative',
-          zIndex: 1,
-        }}
-      >
-        {['📞', '🧭', '💬', '🎵'].map((icon, i) => {
-          const dockOpacity = interpolate(frame, [40 + i * 3, 46 + i * 3], [0, 1], { extrapolateRight: 'clamp' });
-          return (
-            <div
-              key={i}
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 13,
-                background: 'rgba(100,100,110,0.5)',
-                backdropFilter: 'blur(10px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 24,
-                opacity: dockOpacity,
-              }}
-            >
-              {icon}
-            </div>
-          );
-        })}
-      </div>
+        {/* Dock */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 24, padding: '12px 0 28px', position: 'relative', zIndex: 1 }}>
+          {['📞', '🧭', '💬', '🎵'].map((icon, i) => (
+            <div key={i} style={{
+              width: 52, height: 52, borderRadius: 13,
+              background: 'rgba(100,100,110,0.5)', backdropFilter: 'blur(10px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+            }}>{icon}</div>
+          ))}
+        </div>
+      </AbsoluteFill>
+
+      {/* App content layer */}
+      <AbsoluteFill style={{
+        opacity: appOpacity,
+        transform: `scale(${appScale})`,
+        borderRadius: appRadius,
+        overflow: 'hidden',
+      }}>
+        <Sequence from={APP_INTRO} layout="none">
+          {children}
+        </Sequence>
+      </AbsoluteFill>
     </AbsoluteFill>
   );
 };
 
-// ─── Scene 3: Music App / Artist Selection ───────────────
+// ─── Music App / Artist Selection ────────────────────────
 const archetypes = [
   { name: 'Johnny Vex', type: 'THE DIVA', traits: 'Ego. Drama. Sold-out shows.', listeners: '2.1M monthly listeners', emoji: '🎤' },
   { name: 'Raz Korvus', type: 'THE PUNK', traits: 'Chaos. Arrests. Cult following.', listeners: '890K monthly listeners', emoji: '🔥' },
@@ -333,16 +438,8 @@ const MusicAppScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // iOS app launch: scale up from icon position
-  const launchScale = spring({ fps, frame, config: { damping: 12, stiffness: 80 }, from: 0.6, to: 1 });
-  const launchRadius = spring({ fps, frame, config: { damping: 12, stiffness: 80 }, from: 40, to: 0 });
-  const appOpacity = interpolate(frame, [0, 8], [0, 1], { extrapolateRight: 'clamp' });
-
-  // Exit: MANAGE tapped → zoom out
+  // Exit: MANAGE tapped → fade out
   const EXIT_FRAME = 160;
-  const exitScale = frame >= EXIT_FRAME
-    ? spring({ fps, frame: Math.max(0, frame - EXIT_FRAME), config: { damping: 10, stiffness: 80 }, from: 1, to: 1.1 })
-    : 1;
   const exitOpacity = interpolate(frame, [EXIT_FRAME, EXIT_FRAME + 18], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   const SELECT_FRAME = 120;
@@ -355,10 +452,7 @@ const MusicAppScene: React.FC = () => {
         fontFamily: FONT,
         display: 'flex',
         flexDirection: 'column',
-        opacity: appOpacity * exitOpacity,
-        transform: `scale(${launchScale * exitScale})`,
-        borderRadius: launchRadius,
-        overflow: 'hidden',
+        opacity: exitOpacity,
       }}
     >
       <StatusBar />
@@ -555,7 +649,219 @@ const MusicAppScene: React.FC = () => {
   );
 };
 
-// ─── Scene 3: Notification Storm ──────────────────────────
+// ─── Asset helper ────────────────────────────────────────
+const getImageSrc = (imageFile: string) => {
+  if (typeof window !== 'undefined' && (window as any).remotion_isStudio) {
+    return staticFile(imageFile);
+  }
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+  return `${basePath}/${imageFile}`;
+};
+
+// ─── Instagram Artist Selection ──────────────────────────
+const igArtists = [
+  {
+    name: 'Johnny Vex',
+    handle: '@johnnvex',
+    type: 'THE DIVA',
+    bio: 'Ego. Drama. Sold-out shows. 🎤\nBookings: stardamage.mgmt@gmail.com',
+    followers: '2.1M',
+    following: '342',
+    posts: '847',
+    image: 'star-damage/johnny-vex.png',
+  },
+  {
+    name: 'Raz Korvus',
+    handle: '@razkorvus',
+    type: 'THE PUNK',
+    bio: 'Chaos. Arrests. Cult following. 🔥\n🚫 no press 🚫 no rules',
+    followers: '890K',
+    following: '23',
+    posts: '1.2K',
+    image: 'star-damage/raz-korvus.png',
+  },
+  {
+    name: 'Sable Moon',
+    handle: '@sablemoon',
+    type: 'QUIET GENIUS',
+    bio: 'Recluse. Rumors. Masterpieces. 🌙\n"the music speaks for itself"',
+    followers: '3.4M',
+    following: '8',
+    posts: '94',
+    image: 'star-damage/sable-moon.png',
+  },
+];
+
+const InstagramArtistScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  // Swipe between profiles — auto-advance
+  const SWIPE_1 = 70;  // switch to Raz
+  const SWIPE_2 = 130; // switch to Sable
+  const activeIndex = frame >= SWIPE_2 ? 2 : frame >= SWIPE_1 ? 1 : 0;
+  const artist = igArtists[activeIndex];
+
+  // Profile entrance animation (resets on swipe)
+  const swipeFrame = activeIndex === 2 ? frame - SWIPE_2 : activeIndex === 1 ? frame - SWIPE_1 : frame;
+  const slideX = spring({ fps, frame: swipeFrame, config: { damping: 14, stiffness: 100 }, from: 390, to: 0 });
+  const contentOpacity = interpolate(swipeFrame, [0, 8], [0, 1], { extrapolateRight: 'clamp' });
+
+  // Exit: select Johnny Vex
+  const SELECT_FRAME = 170;
+  const selected = frame >= SELECT_FRAME;
+  const exitOpacity = interpolate(frame, [SELECT_FRAME, SELECT_FRAME + 18], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  // Dot indicator swipe animation
+  const dotSlide = spring({ fps, frame: swipeFrame, config: { damping: 12 }, from: -3, to: 0 });
+
+  return (
+    <AbsoluteFill
+      style={{
+        backgroundColor: '#000',
+        fontFamily: FONT,
+        display: 'flex',
+        flexDirection: 'column',
+        opacity: exitOpacity,
+      }}
+    >
+      {/* Instagram header */}
+      <div style={{
+        padding: '10px 16px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        borderBottom: '1px solid #222',
+      }}>
+        <div style={{ fontSize: 16, color: '#fff' }}>‹</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{artist.handle}</div>
+        <div style={{ fontSize: 18, color: '#fff' }}>⋯</div>
+      </div>
+
+      {/* Profile content — slides on swipe */}
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        transform: `translateX(${slideX}px)`,
+        opacity: contentOpacity,
+        overflow: 'hidden',
+      }}>
+        {/* Profile header */}
+        <div style={{ padding: '16px 16px 0', display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* Profile pic */}
+          <div style={{
+            width: 80, height: 80, borderRadius: 40,
+            border: '3px solid #E1306C',
+            padding: 2,
+            flexShrink: 0,
+          }}>
+            <div style={{
+              width: '100%', height: '100%', borderRadius: '50%',
+              overflow: 'hidden',
+              background: `linear-gradient(135deg, ${PRIMARY}44, ${GOLD}44)`,
+            }}>
+              <img
+                src={getImageSrc(artist.image)}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
+            {[
+              { label: 'Posts', value: artist.posts },
+              { label: 'Followers', value: artist.followers },
+              { label: 'Following', value: artist.following },
+            ].map((s) => (
+              <div key={s.label}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{s.value}</div>
+                <div style={{ fontSize: 11, color: '#aaa' }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Name & bio */}
+        <div style={{ padding: '10px 16px 0' }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{artist.name}</div>
+          <div style={{
+            fontSize: 10, fontWeight: 700, color: '#E1306C',
+            letterSpacing: 1, marginTop: 2,
+          }}>{artist.type}</div>
+          <div style={{
+            fontSize: 12, color: '#ccc', marginTop: 6, lineHeight: 1.5,
+            whiteSpace: 'pre-line',
+          }}>{artist.bio}</div>
+        </div>
+
+        {/* Action buttons */}
+        <div style={{ display: 'flex', gap: 6, padding: '12px 16px 0' }}>
+          <div style={{
+            flex: 1, background: selected && activeIndex === 0 ? '#E1306C' : '#363636',
+            borderRadius: 8, padding: '8px 0', textAlign: 'center',
+            fontSize: 13, fontWeight: 600, color: '#fff',
+            transform: `scale(${selected && activeIndex === 0
+              ? spring({ fps, frame: Math.max(0, frame - SELECT_FRAME), config: { damping: 12, stiffness: 200 }, from: 0.9, to: 1 })
+              : 1})`,
+          }}>
+            {selected && activeIndex === 0 ? '★ Managing' : 'Manage'}
+          </div>
+          <div style={{
+            width: 36, background: '#363636', borderRadius: 8,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 14, color: '#fff',
+          }}>▾</div>
+        </div>
+
+        {/* Grid/Reels tabs */}
+        <div style={{
+          display: 'flex', borderBottom: '1px solid #333', marginTop: 14,
+        }}>
+          {['⊞', '▶', '🏷'].map((icon, i) => (
+            <div key={i} style={{
+              flex: 1, textAlign: 'center', padding: '10px 0',
+              fontSize: 16, color: i === 0 ? '#fff' : '#666',
+              borderBottom: i === 0 ? '1px solid #fff' : 'none',
+            }}>{icon}</div>
+          ))}
+        </div>
+
+        {/* Fake post grid */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2,
+          flex: 1,
+        }}>
+          {Array.from({ length: 9 }).map((_, i) => {
+            const gridOpacity = interpolate(swipeFrame, [10 + i * 3, 16 + i * 3], [0, 1], { extrapolateRight: 'clamp' });
+            return (
+              <div key={i} style={{
+                aspectRatio: '1',
+                background: `linear-gradient(${135 + i * 20}deg, ${PRIMARY}${20 + i * 5}, ${GOLD}${10 + i * 3}, #333)`,
+                opacity: gridOpacity,
+              }} />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Profile dots indicator */}
+      <div style={{
+        display: 'flex', justifyContent: 'center', gap: 6, padding: '10px 0 20px',
+      }}>
+        {igArtists.map((_, i) => (
+          <div key={i} style={{
+            width: i === activeIndex ? 20 : 6,
+            height: 6,
+            borderRadius: 3,
+            background: i === activeIndex ? '#E1306C' : '#444',
+            transform: `translateX(${i === activeIndex ? dotSlide : 0}px)`,
+            transition: 'width 0.2s, background 0.2s',
+          }} />
+        ))}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ─── Scene: Notification Storm ───────────────────────────
 const notifications = [
   { app: 'Star Damage', title: 'Johnny Vex', body: 'bro where are you I need to talk', time: '2m ago' },
   { app: 'Star Damage', title: 'Johnny Vex', body: 'I might have punched a photographer', time: '5m ago' },
@@ -568,75 +874,96 @@ const NotificationScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Entrance: phone wakes up
-  const wakeOpacity = interpolate(frame, [0, 12], [0, 1], { extrapolateRight: 'clamp' });
-  const wakeBrightness = interpolate(frame, [0, 12], [0.3, 1], { extrapolateRight: 'clamp' });
-
-  // Exit: first notification tapped → expand into chat
+  // Exit: last notification tapped → fade out
   const TAP_NOTIF_FRAME = 125;
   const notifTapped = frame >= TAP_NOTIF_FRAME;
-  const exitScale = notifTapped
-    ? spring({ fps, frame: Math.max(0, frame - TAP_NOTIF_FRAME), config: { damping: 10, stiffness: 80 }, from: 1, to: 1.15 })
-    : 1;
   const exitOpacity = interpolate(frame, [TAP_NOTIF_FRAME + 5, TAP_NOTIF_FRAME + 22], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  // How many notifications are currently visible
+  const visibleCount = notifications.filter((_, i) => frame >= 10 + i * 22).length;
 
   return (
     <AbsoluteFill
       style={{
         backgroundColor: '#000',
         fontFamily: FONT,
-        display: 'flex',
-        flexDirection: 'column',
-        opacity: wakeOpacity * exitOpacity,
-        filter: `brightness(${wakeBrightness})`,
-        transform: `scale(${exitScale})`,
+        opacity: exitOpacity,
       }}
     >
-      {/* Lock screen background */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(180deg, #1a1a2e 0%, #0a0a0a 100%)',
-          opacity: 0.9,
-        }}
-      />
+      {/* Home screen background */}
+      <AbsoluteFill>
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)', opacity: 0.7 }} />
+        <StatusBar />
+        <div style={{ textAlign: 'center', marginTop: 40, position: 'relative', zIndex: 1 }}>
+          <div style={{ fontSize: 58, fontWeight: 200, color: '#fff', letterSpacing: -2 }}>9:41</div>
+          <div style={{ fontSize: 14, color: '#ccc', marginTop: 2 }}>Wednesday, April 9</div>
+        </div>
 
-      <StatusBar time="2:47" />
+        {/* App grid (dimmed) */}
+        <div style={{
+          flex: 1, padding: '40px 28px',
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '20px 16px', alignContent: 'start',
+          position: 'relative', zIndex: 1,
+          opacity: interpolate(visibleCount, [0, 3], [1, 0.3], { extrapolateRight: 'clamp' }),
+          filter: `blur(${interpolate(visibleCount, [0, 3], [0, 2], { extrapolateRight: 'clamp' })}px)`,
+          transition: 'opacity 0.3s, filter 0.3s',
+        }}>
+          {homeApps.map((app) => (
+            <div key={app.name} style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+            }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: 14, background: app.color,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+              }}>{app.icon}</div>
+              <span style={{ fontSize: 10, color: '#fff', textAlign: 'center', opacity: 0.9 }}>{app.name}</span>
+            </div>
+          ))}
+        </div>
 
-      {/* Time & Date */}
-      <div style={{ textAlign: 'center', marginTop: 60, position: 'relative', zIndex: 1 }}>
-        <div style={{ fontSize: 64, fontWeight: 200, color: '#fff', letterSpacing: -2 }}>2:47</div>
-        <div style={{ fontSize: 15, color: '#ccc', marginTop: 4 }}>Tuesday, April 8</div>
-      </div>
+        {/* Dock */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 24, padding: '12px 0 28px', position: 'relative', zIndex: 1,
+          opacity: interpolate(visibleCount, [0, 3], [1, 0.3], { extrapolateRight: 'clamp' }),
+        }}>
+          {['📞', '🧭', '💬', '🎵'].map((icon, i) => (
+            <div key={i} style={{
+              width: 52, height: 52, borderRadius: 13,
+              background: 'rgba(100,100,110,0.5)', backdropFilter: 'blur(10px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+            }}>{icon}</div>
+          ))}
+        </div>
+      </AbsoluteFill>
 
-      {/* Notifications */}
-      <div
-        style={{
-          flex: 1,
-          padding: '40px 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-          position: 'relative',
-          zIndex: 1,
-        }}
-      >
+      {/* Notification banners — stacked from top, each pushes others down */}
+      <div style={{
+        position: 'absolute', top: 36, left: 10, right: 10, zIndex: 10,
+        display: 'flex', flexDirection: 'column', gap: 6,
+      }}>
         {notifications.map((n, i) => {
-          const delay = 20 + i * 20;
-          const notifY = spring({
+          const delay = 10 + i * 22;
+          const isVisible = frame >= delay;
+          if (!isVisible) return null;
+
+          // Slide in from top
+          const slideY = spring({
             fps,
             frame: Math.max(0, frame - delay),
             config: { damping: 14, stiffness: 120 },
-            from: -40,
+            from: -80,
             to: 0,
           });
-          const notifOpacity = interpolate(frame, [delay, delay + 8], [0, 1], {
-            extrapolateRight: 'clamp',
-          });
-          const isUrgent = i >= 3;
-          const isTappedNotif = i === 0 && notifTapped;
-          const tapNotifScale = isTappedNotif
+          const bannerOpacity = interpolate(frame, [delay, delay + 6], [0, 1], { extrapolateRight: 'clamp' });
+
+          // Older notifications compress as new ones arrive
+          const newerCount = notifications.filter((_, j) => j > i && frame >= 10 + j * 22).length;
+          const compressScale = interpolate(newerCount, [0, 1, 3], [1, 0.97, 0.92], { extrapolateRight: 'clamp' });
+          const compressOpacity = interpolate(newerCount, [0, 2, 4], [1, 0.85, 0.6], { extrapolateRight: 'clamp' });
+
+          const isTapped = i === 0 && notifTapped;
+          const tapScale = isTapped
             ? spring({ fps, frame: Math.max(0, frame - TAP_NOTIF_FRAME), config: { damping: 15, stiffness: 300 }, from: 0.92, to: 1 })
             : 1;
 
@@ -644,46 +971,33 @@ const NotificationScene: React.FC = () => {
             <div
               key={i}
               style={{
-                background: isTappedNotif ? 'rgba(60, 60, 68, 0.95)' : 'rgba(40, 40, 45, 0.85)',
-                backdropFilter: 'blur(20px)',
-                borderRadius: 14,
-                padding: '12px 14px',
-                opacity: notifOpacity,
-                transform: `translateY(${notifY}px) scale(${tapNotifScale})`,
-                border: isTappedNotif ? `1px solid ${PRIMARY}` : isUrgent ? `1px solid ${PRIMARY}44` : '1px solid rgba(255,255,255,0.06)',
+                background: isTapped ? 'rgba(60, 60, 68, 0.98)' : 'rgba(40, 40, 45, 0.92)',
+                backdropFilter: 'blur(24px)',
+                borderRadius: 16,
+                padding: '10px 12px',
+                opacity: bannerOpacity * compressOpacity,
+                transform: `translateY(${slideY}px) scale(${compressScale * tapScale})`,
+                transformOrigin: 'top center',
+                border: isTapped ? `1px solid ${PRIMARY}` : '1px solid rgba(255,255,255,0.08)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
               }}
             >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 4,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div
-                    style={{
-                      width: 18,
-                      height: 18,
-                      borderRadius: 5,
-                      background: PRIMARY,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 10,
-                    }}
-                  >
-                    ★
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 8, background: PRIMARY, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
+                }}>⭐</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#ccc' }}>{n.title}</span>
+                    <span style={{ fontSize: 10, color: GRAY }}>{n.time}</span>
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#ccc', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    {n.app}
-                  </span>
+                  <div style={{
+                    fontSize: 13, color: '#aaa', marginTop: 2, lineHeight: 1.3,
+                    overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+                  }}>{n.body}</div>
                 </div>
-                <span style={{ fontSize: 11, color: GRAY }}>{n.time}</span>
               </div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 2 }}>{n.title}</div>
-              <div style={{ fontSize: 13, color: '#aaa', lineHeight: 1.3 }}>{n.body}</div>
             </div>
           );
         })}
@@ -714,10 +1028,6 @@ const ChatScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Entrance: slide in from right (opened from notification)
-  const enterX = spring({ fps, frame, config: { damping: 14, stiffness: 100 }, from: 390, to: 0 });
-  const enterOpacity = interpolate(frame, [0, 8], [0, 1], { extrapolateRight: 'clamp' });
-
   // Exit: screen darkens as call comes in
   const CALL_BANNER_FRAME = 210;
   const exitDarken = interpolate(frame, [CALL_BANNER_FRAME, CALL_BANNER_FRAME + 25], [0, 0.4], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
@@ -729,8 +1039,6 @@ const ChatScene: React.FC = () => {
         fontFamily: FONT,
         display: 'flex',
         flexDirection: 'column',
-        transform: `translateX(${enterX}px)`,
-        opacity: enterOpacity,
       }}
     >
       <StatusBar />
@@ -1071,19 +1379,12 @@ const NewsFeedScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Entrance: slide up from bottom (like switching tabs)
-  const enterY = spring({ fps, frame, config: { damping: 14, stiffness: 100 }, from: 60, to: 0 });
-  const enterOpacity = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: 'clamp' });
-
-  // Exit: zoom into dashboard
+  // Exit: fade out
   const EXIT_FRAME = 128;
-  const exitScale = frame >= EXIT_FRAME
-    ? spring({ fps, frame: Math.max(0, frame - EXIT_FRAME), config: { damping: 10, stiffness: 80 }, from: 1, to: 1.1 })
-    : 1;
   const exitOpacity = interpolate(frame, [EXIT_FRAME, EXIT_FRAME + 20], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
-  const cardScale = spring({ fps, frame: Math.max(0, frame - 5), config: { damping: 12 }, from: 0.95, to: 1 });
-  const cardOpacity = interpolate(frame, [5, 15], [0, 1], { extrapolateRight: 'clamp' });
+  const cardScale = spring({ fps, frame, config: { damping: 12 }, from: 0.95, to: 1 });
+  const cardOpacity = interpolate(frame, [0, 12], [0, 1], { extrapolateRight: 'clamp' });
   const reactionsOpacity = interpolate(frame, [40, 55], [0, 1], { extrapolateRight: 'clamp' });
   const commentOpacity = interpolate(frame, [60, 75], [0, 1], { extrapolateRight: 'clamp' });
   const comment2Opacity = interpolate(frame, [85, 100], [0, 1], { extrapolateRight: 'clamp' });
@@ -1095,8 +1396,7 @@ const NewsFeedScene: React.FC = () => {
         fontFamily: FONT,
         display: 'flex',
         flexDirection: 'column',
-        transform: `translateY(${enterY}px) scale(${exitScale})`,
-        opacity: enterOpacity * exitOpacity,
+        opacity: exitOpacity,
       }}
     >
       <StatusBar />
@@ -1266,10 +1566,6 @@ const DashboardScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Entrance: scale up from dashboard tab
-  const enterScale = spring({ fps, frame, config: { damping: 12, stiffness: 80 }, from: 0.9, to: 1 });
-  const enterOpacity = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: 'clamp' });
-
   // Exit: fade to outro
   const EXIT_FRAME = 130;
   const exitOpacity = interpolate(frame, [EXIT_FRAME, EXIT_FRAME + 18], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
@@ -1295,8 +1591,7 @@ const DashboardScene: React.FC = () => {
         fontFamily: FONT,
         display: 'flex',
         flexDirection: 'column',
-        transform: `scale(${enterScale})`,
-        opacity: enterOpacity * exitOpacity,
+        opacity: exitOpacity,
       }}
     >
       <StatusBar />
@@ -1550,65 +1845,65 @@ const OutroScene: React.FC = () => {
   );
 };
 
+// ─── Slide definitions (single source of truth) ──────────
+// tapIndex: which home screen icon to tap (undefined = no app launch intro)
+// duration: content duration in frames (APP_INTRO added automatically when tapIndex is set)
+interface SceneDef {
+  name: string;
+  duration: number;
+  component: React.FC;
+  tapIndex?: number; // which home screen icon to tap (undefined = no app launch intro)
+}
+
+const SCENE_DEFS: SceneDef[] = [
+  { name: 'Splash',        duration: 90,  component: SplashScene },
+  { name: 'The Invite',     duration: 190, component: InviteScene },
+  { name: 'Artists',        duration: 190, component: InstagramArtistScene, tapIndex: 4  }, // Instagram
+  { name: 'Notifications',  duration: 150, component: NotificationScene },
+  { name: 'Chat',           duration: 240, component: ChatScene,           tapIndex: 7  }, // Messages
+  { name: 'Call',           duration: 120, component: CallScene },                         // no intro
+  { name: 'News',           duration: 150, component: NewsFeedScene,       tapIndex: 4  }, // Instagram
+  { name: 'Dashboard',      duration: 150, component: DashboardScene,      tapIndex: 2  }, // Star Damage
+  { name: 'Outro',          duration: 150, component: OutroScene },
+];
+
+// Compute total duration for each slide (content + optional intro)
+function getTotalDuration(def: SceneDef) {
+  return def.duration + (def.tapIndex !== undefined ? APP_INTRO : 0);
+}
+
+// Export slide metadata so page.tsx can derive scrubber positions
+export const STAR_DAMAGE_SLIDES = SCENE_DEFS.map((def) => {
+  const total = getTotalDuration(def);
+  return { name: def.name, duration: total };
+});
+
+export const STAR_DAMAGE_TOTAL_FRAMES = STAR_DAMAGE_SLIDES.reduce((sum, s) => sum + s.duration, 0);
+
 // ─── Main Presentation ────────────────────────────────────
 export const StarDamagePresentation: React.FC = () => {
-  const SPLASH = 90;      // 3s
-  const HOMESCREEN = 120; // 4s
-  const MUSICAPP = 180;   // 6s
-  const NOTIFS = 150;     // 5s
-  const CHAT = 240;       // 8s
-  const CALL = 120;       // 4s
-  const NEWS = 150;       // 5s
-  const DASHBOARD = 150;  // 5s
-  const OUTRO = 150;      // 5s
-
   let f = 0;
 
   return (
     <AbsoluteFill style={{ backgroundColor: BG }}>
-      <Sequence from={f} durationInFrames={SPLASH}>
-        <SplashScene />
-      </Sequence>
+      {SCENE_DEFS.map((def) => {
+        const start = f;
+        const total = getTotalDuration(def);
+        f += total;
+        const Scene = def.component;
 
-      {(() => { f += SPLASH; return null; })()}
-      <Sequence from={f} durationInFrames={HOMESCREEN}>
-        <HomeScreenScene />
-      </Sequence>
-
-      {(() => { f += HOMESCREEN; return null; })()}
-      <Sequence from={f} durationInFrames={MUSICAPP}>
-        <MusicAppScene />
-      </Sequence>
-
-      {(() => { f += MUSICAPP; return null; })()}
-      <Sequence from={f} durationInFrames={NOTIFS}>
-        <NotificationScene />
-      </Sequence>
-
-      {(() => { f += NOTIFS; return null; })()}
-      <Sequence from={f} durationInFrames={CHAT}>
-        <ChatScene />
-      </Sequence>
-
-      {(() => { f += CHAT; return null; })()}
-      <Sequence from={f} durationInFrames={CALL}>
-        <CallScene />
-      </Sequence>
-
-      {(() => { f += CALL; return null; })()}
-      <Sequence from={f} durationInFrames={NEWS}>
-        <NewsFeedScene />
-      </Sequence>
-
-      {(() => { f += NEWS; return null; })()}
-      <Sequence from={f} durationInFrames={DASHBOARD}>
-        <DashboardScene />
-      </Sequence>
-
-      {(() => { f += DASHBOARD; return null; })()}
-      <Sequence from={f} durationInFrames={OUTRO}>
-        <OutroScene />
-      </Sequence>
+        return (
+          <Sequence key={def.name} from={start} durationInFrames={total}>
+            {def.tapIndex !== undefined ? (
+              <AppLaunchTransition tapIndex={def.tapIndex}>
+                <Scene />
+              </AppLaunchTransition>
+            ) : (
+              <Scene />
+            )}
+          </Sequence>
+        );
+      })}
     </AbsoluteFill>
   );
 };

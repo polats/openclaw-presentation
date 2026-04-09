@@ -4,7 +4,7 @@ import { TitleSlide } from '../components/TitleSlide';
 import { PresentationTimeline } from '../components/PresentationTimeline';
 import { OpenclawPresentation } from '../components/OpenclawPresentation';
 import { SupercellPresentation } from '../components/SupercellPresentation';
-import { StarDamagePresentation } from '../components/StarDamagePresentation';
+import { StarDamagePresentation, STAR_DAMAGE_TOTAL_FRAMES } from '../components/StarDamagePresentation';
 
 import { loadFont } from '@remotion/google-fonts/PixelifySans';
 import { loadFont as loadSpaceGrotesk } from '@remotion/google-fonts/SpaceGrotesk';
@@ -50,7 +50,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="StarDamagePresentation"
         component={StarDamagePresentation}
-        durationInFrames={1350}
+        durationInFrames={STAR_DAMAGE_TOTAL_FRAMES}
         fps={30}
         width={390}
         height={844}

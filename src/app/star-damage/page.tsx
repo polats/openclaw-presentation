@@ -2,25 +2,27 @@
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Player, PlayerRef } from '@remotion/player';
-import { StarDamagePresentation } from '../../components/StarDamagePresentation';
+import {
+  StarDamagePresentation,
+  STAR_DAMAGE_SLIDES,
+  STAR_DAMAGE_TOTAL_FRAMES,
+} from '../../components/StarDamagePresentation';
 
 import { loadFont as loadSpaceGrotesk } from '@remotion/google-fonts/SpaceGrotesk';
 loadSpaceGrotesk();
 
-const TOTAL_FRAMES = 1350;
+const TOTAL_FRAMES = STAR_DAMAGE_TOTAL_FRAMES;
 const FPS = 30;
 
-const SLIDES = [
-  { name: 'Splash', start: 0, duration: 90 },
-  { name: 'Home', start: 90, duration: 120 },
-  { name: 'Artists', start: 210, duration: 180 },
-  { name: 'Notifications', start: 390, duration: 150 },
-  { name: 'Chat', start: 540, duration: 240 },
-  { name: 'Call', start: 780, duration: 120 },
-  { name: 'News', start: 900, duration: 150 },
-  { name: 'Dashboard', start: 1050, duration: 150 },
-  { name: 'Outro', start: 1200, duration: 150 },
-];
+// Derive start positions from durations
+const SLIDES = STAR_DAMAGE_SLIDES.reduce<Array<{ name: string; start: number; duration: number }>>(
+  (acc, slide) => {
+    const start = acc.length > 0 ? acc[acc.length - 1].start + acc[acc.length - 1].duration : 0;
+    acc.push({ name: slide.name, start, duration: slide.duration });
+    return acc;
+  },
+  [],
+);
 
 const SWIPE_THRESHOLD = 50;
 
