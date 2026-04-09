@@ -6,6 +6,7 @@ export type TitleSlideProps = {
   subtitleText: string;
   primaryColor: string;
   secondaryColor: string;
+  fontFamily?: string;
 };
 
 export const TitleSlide: React.FC<TitleSlideProps> = ({
@@ -13,6 +14,7 @@ export const TitleSlide: React.FC<TitleSlideProps> = ({
   subtitleText,
   primaryColor,
   secondaryColor,
+  fontFamily: titleFontFamily = '"Pixelify Sans", Inter, sans-serif',
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -156,7 +158,7 @@ export const TitleSlide: React.FC<TitleSlideProps> = ({
               fontWeight: 900,
               lineHeight: 1.1,
               marginBottom: '24px',
-              fontFamily: '"Pixelify Sans", Inter, sans-serif',
+              fontFamily: titleFontFamily,
               textTransform: 'uppercase',
               letterSpacing: '-0.02em',
               opacity: titleOpacity,
@@ -176,7 +178,7 @@ export const TitleSlide: React.FC<TitleSlideProps> = ({
               fontSize: '2rem',
               fontWeight: 500,
               color: 'rgba(255, 255, 255, 0.7)',
-              fontFamily: '"Pixelify Sans", Inter, sans-serif',
+              fontFamily: titleFontFamily,
               textTransform: 'uppercase',
               letterSpacing: '0.2em',
               opacity: subtitleOpacity,

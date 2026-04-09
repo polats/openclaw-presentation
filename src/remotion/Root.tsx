@@ -3,9 +3,13 @@ import { Composition } from 'remotion';
 import { TitleSlide } from '../components/TitleSlide';
 import { PresentationTimeline } from '../components/PresentationTimeline';
 import { OpenclawPresentation } from '../components/OpenclawPresentation';
+import { SupercellPresentation } from '../components/SupercellPresentation';
+import { StarDamagePresentation } from '../components/StarDamagePresentation';
 
 import { loadFont } from '@remotion/google-fonts/PixelifySans';
+import { loadFont as loadSpaceGrotesk } from '@remotion/google-fonts/SpaceGrotesk';
 loadFont();
+loadSpaceGrotesk();
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -34,6 +38,24 @@ export const RemotionRoot: React.FC = () => {
         }}
       />
       
+      <Composition
+        id="SupercellPresentation"
+        component={SupercellPresentation}
+        durationInFrames={3090}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+
+      <Composition
+        id="StarDamagePresentation"
+        component={StarDamagePresentation}
+        durationInFrames={1200}
+        fps={30}
+        width={390}
+        height={844}
+      />
+
       <Composition
         id="PresentationTimeline"
         component={PresentationTimeline}

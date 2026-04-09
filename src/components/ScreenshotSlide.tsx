@@ -10,6 +10,7 @@ export type ScreenshotSlideProps = {
   imageSrc?: string;
   imageFile?: string;
   primaryColor: string;
+  compact?: boolean;
 };
 
 const getImageSrc = (imageFile?: string) => {
@@ -30,6 +31,7 @@ export const ScreenshotSlide: React.FC<ScreenshotSlideProps> = ({
   imageSrc,
   imageFile,
   primaryColor,
+  compact = false,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -63,7 +65,7 @@ export const ScreenshotSlide: React.FC<ScreenshotSlideProps> = ({
         backgroundColor: 'transparent',
         display: 'flex',
         flexDirection: 'column',
-        padding: '50px 100px',
+        padding: compact ? '30px 60px' : '50px 100px',
         color: 'white',
         fontFamily: 'Inter, sans-serif',
       }}
@@ -79,13 +81,13 @@ export const ScreenshotSlide: React.FC<ScreenshotSlideProps> = ({
       {/* Title */}
       <h1
         style={{
-          fontSize: '3.5rem',
+          fontSize: compact ? '2.5rem' : '3.5rem',
           fontWeight: 800,
           fontFamily: '"Pixelify Sans", Inter, sans-serif',
           textTransform: 'uppercase',
           borderBottom: `4px solid ${primaryColor}`,
           paddingBottom: '12px',
-          marginBottom: '16px',
+          marginBottom: compact ? '8px' : '16px',
           width: 'fit-content',
           transform: `translateY(${titleY}px)`,
           opacity: titleOpacity,

@@ -1,13 +1,23 @@
 import React from 'react';
-import { interpolate, spring, useCurrentFrame, useVideoConfig, AbsoluteFill, Sequence } from 'remotion';
+import { interpolate, spring, useCurrentFrame, useVideoConfig, AbsoluteFill, Sequence, staticFile } from 'remotion';
 
 export type FeatureSlideProps = {
   title: string;
   features: string[];
   primaryColor: string;
+  imageFile?: string;
 };
 
-export const FeatureSlide: React.FC<FeatureSlideProps> = ({ title, features, primaryColor }) => {
+const getImageSrc = (imageFile?: string) => {
+  if (!imageFile) return '';
+  if (typeof window !== 'undefined' && (window as any).remotion_isStudio) {
+    return staticFile(imageFile);
+  }
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+  return `${basePath}/${imageFile}`;
+};
+
+export const FeatureSlide: React.FC<FeatureSlideProps> = ({ title, features, primaryColor, imageFile }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -61,48 +71,75 @@ export const FeatureSlide: React.FC<FeatureSlideProps> = ({ title, features, pri
         {title}
       </h1>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', marginTop: '40px', position: 'relative' }}>
-        {features.map((feature, index) => {
-          // Stagger the entrance of each feature by 15 frames
-          const featureFrame = frame - (index * 15 + 15);
-          
-          const featureX = spring({
-            fps,
-            frame: featureFrame,
-            config: { damping: 12, stiffness: 120 },
-            from: 100,
-            to: 0,
-          });
+      <div style={{ display: 'flex', gap: '60px', flex: 1, position: 'relative', alignItems: 'center' }}>
+        {/* Bullet points */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', flex: 1 }}>
+          {features.map((feature, index) => {
+            // Stagger the entrance of each feature by 15 frames
+            const featureFrame = frame - (index * 15 + 15);
 
-          const featureOpacity = interpolate(featureFrame, [0, 10], [0, 1], { extrapolateRight: 'clamp' });
+            const featureX = spring({
+              fps,
+              frame: featureFrame,
+              config: { damping: 12, stiffness: 120 },
+              from: 100,
+              to: 0,
+            });
 
-          return (
-            <div
-              key={index}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '24px',
-                transform: `translateX(${featureX}px)`,
-                opacity: featureOpacity,
-                fontSize: '2.5rem',
-                fontWeight: 500,
-                color: 'rgba(255, 255, 255, 0.85)',
-              }}
-            >
+            const featureOpacity = interpolate(featureFrame, [0, 10], [0, 1], { extrapolateRight: 'clamp' });
+
+            return (
               <div
+                key={index}
                 style={{
-                  width: '24px',
-                  height: '24px',
-                  backgroundColor: primaryColor,
-                  boxShadow: `0 0 20px ${primaryColor}80`,
-                  transform: 'rotate(45deg)', // Diamond bullet
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '24px',
+                  transform: `translateX(${featureX}px)`,
+                  opacity: featureOpacity,
+                  fontSize: imageFile ? '2rem' : '2.5rem',
+                  fontWeight: 500,
+                  color: 'rgba(255, 255, 255, 0.85)',
                 }}
-              />
-              <span>{feature}</span>
-            </div>
-          );
-        })}
+              >
+                <div
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    backgroundColor: primaryColor,
+                    boxShadow: `0 0 20px ${primaryColor}80`,
+                    transform: 'rotate(45deg)', // Diamond bullet
+                    flexShrink: 0,
+                  }}
+                />
+                <span>{feature}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Optional image */}
+        {imageFile && (
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            opacity: interpolate(frame, [10, 25], [0, 1], { extrapolateRight: 'clamp' }),
+          }}>
+            <img
+              src={getImageSrc(imageFile)}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '100%',
+                objectFit: 'contain',
+                borderRadius: '12px',
+                border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: `0 20px 60px rgba(0,0,0,0.5), 0 0 30px ${primaryColor}20`,
+              }}
+            />
+          </div>
+        )}
       </div>
     </AbsoluteFill>
   );
