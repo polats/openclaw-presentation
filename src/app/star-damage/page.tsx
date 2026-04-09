@@ -7,18 +7,19 @@ import { StarDamagePresentation } from '../../components/StarDamagePresentation'
 import { loadFont as loadSpaceGrotesk } from '@remotion/google-fonts/SpaceGrotesk';
 loadSpaceGrotesk();
 
-const TOTAL_FRAMES = 1200;
+const TOTAL_FRAMES = 1350;
 const FPS = 30;
 
 const SLIDES = [
   { name: 'Splash', start: 0, duration: 90 },
-  { name: 'Choose', start: 90, duration: 150 },
-  { name: 'Notifications', start: 240, duration: 150 },
-  { name: 'Chat', start: 390, duration: 240 },
-  { name: 'Call', start: 630, duration: 120 },
-  { name: 'News', start: 750, duration: 150 },
-  { name: 'Dashboard', start: 900, duration: 150 },
-  { name: 'Outro', start: 1050, duration: 150 },
+  { name: 'Home', start: 90, duration: 120 },
+  { name: 'Artists', start: 210, duration: 180 },
+  { name: 'Notifications', start: 390, duration: 150 },
+  { name: 'Chat', start: 540, duration: 240 },
+  { name: 'Call', start: 780, duration: 120 },
+  { name: 'News', start: 900, duration: 150 },
+  { name: 'Dashboard', start: 1050, duration: 150 },
+  { name: 'Outro', start: 1200, duration: 150 },
 ];
 
 const SWIPE_THRESHOLD = 50;

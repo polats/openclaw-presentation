@@ -148,154 +148,408 @@ const SplashScene: React.FC = () => {
   );
 };
 
-// ─── Scene 2: Archetype Selection ─────────────────────────
-const archetypes = [
-  { name: 'Johnny Vex', type: 'THE DIVA', traits: 'Ego. Drama. Sold-out shows.', emoji: '🎤' },
-  { name: 'Raz Korvus', type: 'THE PUNK', traits: 'Chaos. Arrests. Cult following.', emoji: '🔥' },
-  { name: 'Sable Moon', type: 'QUIET GENIUS', traits: 'Recluse. Rumors. Masterpieces.', emoji: '🌙' },
+// ─── Scene 2: Phone Home Screen ──────────────────────────
+const homeApps = [
+  { name: 'Mail', color: '#007AFF', icon: '✉️' },
+  { name: 'Photos', color: '#FF9500', icon: '🖼️' },
+  { name: 'Camera', color: '#555', icon: '📷' },
+  { name: 'Weather', color: '#34AADC', icon: '🌤️' },
+  { name: 'Instagram', color: '#E1306C', icon: '📸' },
+  { name: 'Spotify', color: '#1DB954', icon: '🎵' },
+  { name: 'Twitter', color: '#1DA1F2', icon: '🐦' },
+  { name: 'Messages', color: '#34C759', icon: '💬' },
+  { name: 'Maps', color: '#4CAF50', icon: '🗺️' },
+  { name: 'Calendar', color: '#FF3B30', icon: '📅' },
+  { name: 'Notes', color: '#FFCC00', icon: '📝' },
+  { name: 'Settings', color: '#8E8E93', icon: '⚙️' },
 ];
 
-const ArchetypeScene: React.FC = () => {
+const HomeScreenScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const headerOpacity = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: 'clamp' });
+  // Spotify is index 5 — tap animation starts at frame 80
+  const TAP_FRAME = 80;
+  const spotifyTapped = frame >= TAP_FRAME;
+  const tapScale = spotifyTapped
+    ? spring({ fps, frame: Math.max(0, frame - TAP_FRAME), config: { damping: 15, stiffness: 300 }, from: 0.85, to: 1 })
+    : 1;
+  // Screen flash/zoom after tap
+  const screenZoom = spotifyTapped
+    ? spring({ fps, frame: Math.max(0, frame - TAP_FRAME - 8), config: { damping: 10, stiffness: 80 }, from: 1, to: 1.15 })
+    : 1;
+  const screenFade = interpolate(frame, [TAP_FRAME + 10, TAP_FRAME + 25], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   return (
     <AbsoluteFill
       style={{
-        backgroundColor: BG,
+        backgroundColor: '#000',
         fontFamily: FONT,
         display: 'flex',
         flexDirection: 'column',
+        opacity: screenFade,
+        transform: `scale(${screenZoom})`,
+      }}
+    >
+      {/* Wallpaper gradient */}
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)', opacity: 0.7 }} />
+
+      <StatusBar />
+
+      {/* Time */}
+      <div style={{ textAlign: 'center', marginTop: 40, position: 'relative', zIndex: 1 }}>
+        <div style={{ fontSize: 58, fontWeight: 200, color: '#fff', letterSpacing: -2 }}>9:41</div>
+        <div style={{ fontSize: 14, color: '#ccc', marginTop: 2 }}>Wednesday, April 9</div>
+      </div>
+
+      {/* App grid */}
+      <div
+        style={{
+          flex: 1,
+          padding: '40px 28px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '20px 16px',
+          alignContent: 'start',
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
+        {homeApps.map((app, i) => {
+          const delay = 5 + i * 3;
+          const iconScale = spring({
+            fps,
+            frame: Math.max(0, frame - delay),
+            config: { damping: 12, stiffness: 120 },
+            from: 0,
+            to: 1,
+          });
+          const iconOpacity = interpolate(frame, [delay, delay + 6], [0, 1], { extrapolateRight: 'clamp' });
+          const isSpotify = i === 5;
+
+          // Tap ring effect on Spotify
+          const tapRingScale = isSpotify && spotifyTapped
+            ? spring({ fps, frame: Math.max(0, frame - TAP_FRAME), config: { damping: 8 }, from: 0.5, to: 2 })
+            : 0;
+          const tapRingOpacity = isSpotify && spotifyTapped
+            ? interpolate(frame, [TAP_FRAME, TAP_FRAME + 15], [0.6, 0], { extrapolateRight: 'clamp' })
+            : 0;
+
+          return (
+            <div
+              key={app.name}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 6,
+                opacity: iconOpacity,
+                transform: `scale(${iconScale * (isSpotify ? tapScale : 1)})`,
+                position: 'relative',
+              }}
+            >
+              {/* Tap ring */}
+              {isSpotify && spotifyTapped && (
+                <div style={{
+                  position: 'absolute',
+                  width: 56,
+                  height: 56,
+                  borderRadius: 14,
+                  border: '2px solid #1DB954',
+                  transform: `scale(${tapRingScale})`,
+                  opacity: tapRingOpacity,
+                  top: 0,
+                }} />
+              )}
+              <div
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 14,
+                  background: app.color,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 26,
+                  boxShadow: isSpotify && spotifyTapped ? '0 0 20px #1DB95488' : '0 2px 8px rgba(0,0,0,0.3)',
+                }}
+              >
+                {app.icon}
+              </div>
+              <span style={{ fontSize: 10, color: '#fff', textAlign: 'center', opacity: 0.9 }}>
+                {app.name}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Dock */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: 24,
+          padding: '12px 0 28px',
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
+        {['📞', '🧭', '💬', '🎵'].map((icon, i) => {
+          const dockOpacity = interpolate(frame, [40 + i * 3, 46 + i * 3], [0, 1], { extrapolateRight: 'clamp' });
+          return (
+            <div
+              key={i}
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 13,
+                background: 'rgba(100,100,110,0.5)',
+                backdropFilter: 'blur(10px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 24,
+                opacity: dockOpacity,
+              }}
+            >
+              {icon}
+            </div>
+          );
+        })}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ─── Scene 3: Music App / Artist Selection ───────────────
+const archetypes = [
+  { name: 'Johnny Vex', type: 'THE DIVA', traits: 'Ego. Drama. Sold-out shows.', listeners: '2.1M monthly listeners', emoji: '🎤' },
+  { name: 'Raz Korvus', type: 'THE PUNK', traits: 'Chaos. Arrests. Cult following.', listeners: '890K monthly listeners', emoji: '🔥' },
+  { name: 'Sable Moon', type: 'QUIET GENIUS', traits: 'Recluse. Rumors. Masterpieces.', listeners: '3.4M monthly listeners', emoji: '🌙' },
+];
+
+const MusicAppScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  // iOS app launch: scale up from icon position
+  const launchScale = spring({ fps, frame, config: { damping: 12, stiffness: 80 }, from: 0.6, to: 1 });
+  const launchRadius = spring({ fps, frame, config: { damping: 12, stiffness: 80 }, from: 40, to: 0 });
+  const appOpacity = interpolate(frame, [0, 8], [0, 1], { extrapolateRight: 'clamp' });
+
+  // Exit: MANAGE tapped → zoom out
+  const EXIT_FRAME = 160;
+  const exitScale = frame >= EXIT_FRAME
+    ? spring({ fps, frame: Math.max(0, frame - EXIT_FRAME), config: { damping: 10, stiffness: 80 }, from: 1, to: 1.1 })
+    : 1;
+  const exitOpacity = interpolate(frame, [EXIT_FRAME, EXIT_FRAME + 18], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  const SELECT_FRAME = 120;
+  const selected = frame >= SELECT_FRAME;
+
+  return (
+    <AbsoluteFill
+      style={{
+        backgroundColor: '#121212',
+        fontFamily: FONT,
+        display: 'flex',
+        flexDirection: 'column',
+        opacity: appOpacity * exitOpacity,
+        transform: `scale(${launchScale * exitScale})`,
+        borderRadius: launchRadius,
+        overflow: 'hidden',
       }}
     >
       <StatusBar />
 
-      <div style={{ padding: '40px 24px 0', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <div
-          style={{
-            fontSize: 24,
-            fontWeight: 700,
-            color: '#fff',
-            textAlign: 'center',
-            marginBottom: 8,
-            opacity: headerOpacity,
-          }}
-        >
-          Choose Your Star
+      {/* Spotify-style header */}
+      <div style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ fontSize: 18, color: '#fff' }}>‹</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#b3b3b3', textTransform: 'uppercase', letterSpacing: 1 }}>
+          Search
         </div>
-        <div
-          style={{
-            fontSize: 13,
-            color: GRAY,
-            textAlign: 'center',
-            marginBottom: 32,
-            opacity: headerOpacity,
-          }}
-        >
-          Each one will ruin your life differently.
+      </div>
+
+      {/* Search bar */}
+      <div style={{ padding: '0 16px 12px' }}>
+        <div style={{
+          background: '#282828',
+          borderRadius: 8,
+          padding: '10px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+        }}>
+          <span style={{ fontSize: 14, color: '#b3b3b3' }}>🔍</span>
+          <span style={{ fontSize: 14, color: '#b3b3b3' }}>Artists to manage...</span>
         </div>
+      </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
-          {archetypes.map((a, i) => {
-            const delay = 15 + i * 12;
-            const cardY = spring({
-              fps,
-              frame: Math.max(0, frame - delay),
-              config: { damping: 12, stiffness: 100 },
-              from: 60,
-              to: 0,
-            });
-            const cardOpacity = interpolate(frame, [delay, delay + 12], [0, 1], {
-              extrapolateRight: 'clamp',
-            });
-            const isSelected = i === 0 && frame > 100;
-            const selectScale = isSelected
-              ? spring({ fps, frame: Math.max(0, frame - 100), config: { damping: 10 }, from: 1, to: 1.02 })
-              : 1;
-
-            return (
-              <div
-                key={a.name}
-                style={{
-                  background: isSelected
-                    ? `linear-gradient(135deg, ${PRIMARY}33, ${CARD_BG})`
-                    : CARD_BG,
-                  borderRadius: 16,
-                  padding: '18px 20px',
-                  opacity: cardOpacity,
-                  transform: `translateY(${cardY}px) scale(${selectScale})`,
-                  border: isSelected ? `2px solid ${PRIMARY}` : '2px solid transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 16,
-                  transition: 'border 0.3s',
-                }}
-              >
-                <div
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 14,
-                    background: `linear-gradient(135deg, ${PRIMARY}44, ${GOLD}44)`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 28,
-                    flexShrink: 0,
-                  }}
-                >
-                  {a.emoji}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: '#fff' }}>{a.name}</div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: PRIMARY, letterSpacing: 1, marginTop: 2 }}>
-                    {a.type}
-                  </div>
-                  <div style={{ fontSize: 12, color: GRAY, marginTop: 4 }}>{a.traits}</div>
-                </div>
+      {/* Category pills */}
+      {(() => {
+        const categories = ['Rock', 'Punk', 'Alternative', 'Indie'];
+        const pillsOpacity = interpolate(frame, [8, 18], [0, 1], { extrapolateRight: 'clamp' });
+        return (
+          <div style={{ display: 'flex', gap: 8, padding: '0 16px 16px', opacity: pillsOpacity }}>
+            {categories.map((cat, i) => (
+              <div key={cat} style={{
+                background: i === 0 ? '#1DB954' : '#282828',
+                borderRadius: 20,
+                padding: '6px 14px',
+                fontSize: 12,
+                fontWeight: 600,
+                color: i === 0 ? '#000' : '#fff',
+              }}>
+                {cat}
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        );
+      })()}
 
-        {/* Select button */}
-        {(() => {
-          const btnOpacity = interpolate(frame, [100, 112], [0, 1], { extrapolateRight: 'clamp' });
-          const btnY = spring({
+      {/* Section title */}
+      <div style={{ padding: '8px 16px 12px' }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>Choose an artist to manage</div>
+        <div style={{ fontSize: 12, color: '#b3b3b3', marginTop: 4 }}>Each one will ruin your life differently.</div>
+      </div>
+
+      {/* Artist cards */}
+      <div style={{ flex: 1, padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' }}>
+        {archetypes.map((a, i) => {
+          const delay = 15 + i * 12;
+          const cardY = spring({
             fps,
-            frame: Math.max(0, frame - 100),
-            config: { damping: 12 },
-            from: 20,
+            frame: Math.max(0, frame - delay),
+            config: { damping: 12, stiffness: 100 },
+            from: 50,
             to: 0,
           });
+          const cardOpacity = interpolate(frame, [delay, delay + 10], [0, 1], { extrapolateRight: 'clamp' });
+
+          const isSelected = i === 0 && selected;
+          const selectScale = isSelected
+            ? spring({ fps, frame: Math.max(0, frame - SELECT_FRAME), config: { damping: 12 }, from: 1, to: 1.02 })
+            : 1;
+
           return (
             <div
+              key={a.name}
               style={{
-                marginTop: 20,
-                marginBottom: 32,
-                opacity: btnOpacity,
-                transform: `translateY(${btnY}px)`,
+                background: isSelected ? '#1DB95418' : '#181818',
+                borderRadius: 12,
+                padding: '12px',
+                opacity: cardOpacity,
+                transform: `translateY(${cardY}px) scale(${selectScale})`,
+                border: isSelected ? '1.5px solid #1DB954' : '1.5px solid transparent',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 14,
               }}
             >
-              <div
-                style={{
-                  background: PRIMARY,
-                  borderRadius: 14,
-                  padding: '16px 0',
-                  textAlign: 'center',
-                  fontSize: 16,
-                  fontWeight: 700,
-                  color: '#fff',
-                  letterSpacing: 0.5,
-                }}
-              >
-                MANAGE THIS DISASTER
+              {/* Artist avatar */}
+              <div style={{
+                width: 60,
+                height: 60,
+                borderRadius: 30,
+                background: `linear-gradient(135deg, ${PRIMARY}66, ${GOLD}66)`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 28,
+                flexShrink: 0,
+                boxShadow: isSelected ? '0 0 16px #1DB95444' : 'none',
+              }}>
+                {a.emoji}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{a.name}</div>
+                  {isSelected && (
+                    <div style={{ fontSize: 10, color: '#1DB954', fontWeight: 700, background: '#1DB95422', padding: '2px 6px', borderRadius: 4 }}>
+                      SELECTED
+                    </div>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#1DB954', letterSpacing: 0.5, marginTop: 2 }}>
+                  {a.type}
+                </div>
+                <div style={{ fontSize: 11, color: '#b3b3b3', marginTop: 3 }}>{a.listeners}</div>
+                <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>{a.traits}</div>
+              </div>
+              {/* Play/manage button */}
+              <div style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                background: isSelected ? '#1DB954' : 'transparent',
+                border: isSelected ? 'none' : '1.5px solid #555',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 14,
+                color: isSelected ? '#000' : '#fff',
+                flexShrink: 0,
+              }}>
+                {isSelected ? '▶' : '○'}
               </div>
             </div>
           );
-        })()}
+        })}
+      </div>
+
+      {/* Now Playing bar at bottom */}
+      {(() => {
+        const barOpacity = interpolate(frame, [SELECT_FRAME, SELECT_FRAME + 12], [0, 1], { extrapolateRight: 'clamp' });
+        const barY = spring({
+          fps,
+          frame: Math.max(0, frame - SELECT_FRAME),
+          config: { damping: 12 },
+          from: 30,
+          to: 0,
+        });
+        return (
+          <div style={{
+            margin: '10px 8px',
+            background: '#282828',
+            borderRadius: 10,
+            padding: '10px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            opacity: barOpacity,
+            transform: `translateY(${barY}px)`,
+          }}>
+            <div style={{
+              width: 40,
+              height: 40,
+              borderRadius: 6,
+              background: `linear-gradient(135deg, ${PRIMARY}, ${GOLD})`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 18,
+            }}>
+              🎤
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Johnny Vex</div>
+              <div style={{ fontSize: 11, color: '#1DB954' }}>Now managing...</div>
+            </div>
+            <div style={{
+              fontSize: 10, fontWeight: 700, color: '#000', background: '#1DB954', padding: '6px 14px', borderRadius: 20,
+              transform: `scale(${frame >= EXIT_FRAME ? spring({ fps, frame: Math.max(0, frame - EXIT_FRAME), config: { damping: 15, stiffness: 300 }, from: 0.8, to: 1 }) : 1})`,
+              boxShadow: frame >= EXIT_FRAME ? '0 0 16px #1DB95466' : 'none',
+            }}>
+              MANAGE
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Home bar */}
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 20px' }}>
+        <div style={{ width: 134, height: 4, borderRadius: 2, background: '#555' }} />
       </div>
     </AbsoluteFill>
   );
@@ -314,6 +568,18 @@ const NotificationScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
+  // Entrance: phone wakes up
+  const wakeOpacity = interpolate(frame, [0, 12], [0, 1], { extrapolateRight: 'clamp' });
+  const wakeBrightness = interpolate(frame, [0, 12], [0.3, 1], { extrapolateRight: 'clamp' });
+
+  // Exit: first notification tapped → expand into chat
+  const TAP_NOTIF_FRAME = 125;
+  const notifTapped = frame >= TAP_NOTIF_FRAME;
+  const exitScale = notifTapped
+    ? spring({ fps, frame: Math.max(0, frame - TAP_NOTIF_FRAME), config: { damping: 10, stiffness: 80 }, from: 1, to: 1.15 })
+    : 1;
+  const exitOpacity = interpolate(frame, [TAP_NOTIF_FRAME + 5, TAP_NOTIF_FRAME + 22], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
   return (
     <AbsoluteFill
       style={{
@@ -321,6 +587,9 @@ const NotificationScene: React.FC = () => {
         fontFamily: FONT,
         display: 'flex',
         flexDirection: 'column',
+        opacity: wakeOpacity * exitOpacity,
+        filter: `brightness(${wakeBrightness})`,
+        transform: `scale(${exitScale})`,
       }}
     >
       {/* Lock screen background */}
@@ -366,18 +635,22 @@ const NotificationScene: React.FC = () => {
             extrapolateRight: 'clamp',
           });
           const isUrgent = i >= 3;
+          const isTappedNotif = i === 0 && notifTapped;
+          const tapNotifScale = isTappedNotif
+            ? spring({ fps, frame: Math.max(0, frame - TAP_NOTIF_FRAME), config: { damping: 15, stiffness: 300 }, from: 0.92, to: 1 })
+            : 1;
 
           return (
             <div
               key={i}
               style={{
-                background: 'rgba(40, 40, 45, 0.85)',
+                background: isTappedNotif ? 'rgba(60, 60, 68, 0.95)' : 'rgba(40, 40, 45, 0.85)',
                 backdropFilter: 'blur(20px)',
                 borderRadius: 14,
                 padding: '12px 14px',
                 opacity: notifOpacity,
-                transform: `translateY(${notifY}px)`,
-                border: isUrgent ? `1px solid ${PRIMARY}44` : '1px solid rgba(255,255,255,0.06)',
+                transform: `translateY(${notifY}px) scale(${tapNotifScale})`,
+                border: isTappedNotif ? `1px solid ${PRIMARY}` : isUrgent ? `1px solid ${PRIMARY}44` : '1px solid rgba(255,255,255,0.06)',
               }}
             >
               <div
@@ -441,6 +714,14 @@ const ChatScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
+  // Entrance: slide in from right (opened from notification)
+  const enterX = spring({ fps, frame, config: { damping: 14, stiffness: 100 }, from: 390, to: 0 });
+  const enterOpacity = interpolate(frame, [0, 8], [0, 1], { extrapolateRight: 'clamp' });
+
+  // Exit: screen darkens as call comes in
+  const CALL_BANNER_FRAME = 210;
+  const exitDarken = interpolate(frame, [CALL_BANNER_FRAME, CALL_BANNER_FRAME + 25], [0, 0.4], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
   return (
     <AbsoluteFill
       style={{
@@ -448,6 +729,8 @@ const ChatScene: React.FC = () => {
         fontFamily: FONT,
         display: 'flex',
         flexDirection: 'column',
+        transform: `translateX(${enterX}px)`,
+        opacity: enterOpacity,
       }}
     >
       <StatusBar />
@@ -595,6 +878,52 @@ const ChatScene: React.FC = () => {
           ↑
         </div>
       </div>
+
+      {/* Darken overlay when call comes in */}
+      <div style={{
+        position: 'absolute', inset: 0, background: '#000', opacity: exitDarken, pointerEvents: 'none', zIndex: 10,
+      }} />
+
+      {/* Incoming call banner */}
+      {frame >= CALL_BANNER_FRAME && (() => {
+        const bannerY = spring({ fps, frame: Math.max(0, frame - CALL_BANNER_FRAME), config: { damping: 14, stiffness: 120 }, from: -100, to: 0 });
+        const bannerOpacity = interpolate(frame, [CALL_BANNER_FRAME, CALL_BANNER_FRAME + 8], [0, 1], { extrapolateRight: 'clamp' });
+        const ringPulse = Math.sin((frame - CALL_BANNER_FRAME) * 0.4) * 0.5 + 0.5;
+        return (
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
+            padding: '8px 12px',
+            opacity: bannerOpacity,
+            transform: `translateY(${bannerY}px)`,
+          }}>
+            <div style={{
+              background: 'rgba(40, 40, 45, 0.95)', backdropFilter: 'blur(20px)',
+              borderRadius: 16, padding: '14px 16px',
+              display: 'flex', alignItems: 'center', gap: 12,
+              border: `1px solid rgba(52,199,89,${0.3 + ringPulse * 0.3})`,
+              boxShadow: `0 4px 20px rgba(0,0,0,0.5), 0 0 ${8 + ringPulse * 8}px rgba(52,199,89,0.2)`,
+            }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 20,
+                background: `linear-gradient(135deg, ${PRIMARY}, ${GOLD})`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+              }}>🎤</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Johnny Vex</div>
+                <div style={{ fontSize: 11, color: '#34C759' }}>Incoming Call...</div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 16, background: '#FF3B30', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>✕</div>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 16, background: '#34C759',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
+                  transform: `scale(${1 + ringPulse * 0.08})`,
+                }}>📞</div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </AbsoluteFill>
   );
 };
@@ -603,6 +932,15 @@ const ChatScene: React.FC = () => {
 const CallScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+
+  // Entrance: expand from banner
+  const enterScale = spring({ fps, frame, config: { damping: 12, stiffness: 80 }, from: 0.85, to: 1 });
+  const enterOpacity = interpolate(frame, [0, 8], [0, 1], { extrapolateRight: 'clamp' });
+
+  // Exit: accept tapped → green flash
+  const ACCEPT_FRAME = 95;
+  const accepted = frame >= ACCEPT_FRAME;
+  const exitOpacity = interpolate(frame, [ACCEPT_FRAME + 5, ACCEPT_FRAME + 22], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   const ringPulse = Math.sin(frame * 0.3) * 0.5 + 0.5;
   const avatarScale = spring({ fps, frame, config: { damping: 8 }, from: 0.5, to: 1 });
@@ -617,6 +955,8 @@ const CallScene: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        transform: `scale(${enterScale})`,
+        opacity: enterOpacity * exitOpacity,
       }}
     >
       <StatusBar time="2:47" />
@@ -703,8 +1043,8 @@ const CallScene: React.FC = () => {
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: 28,
-              boxShadow: `0 4px 20px rgba(52,199,89,${0.3 + ringPulse * 0.2})`,
-              transform: `scale(${1 + ringPulse * 0.05})`,
+              boxShadow: `0 4px 20px rgba(52,199,89,${accepted ? 0.8 : 0.3 + ringPulse * 0.2})`,
+              transform: `scale(${accepted ? spring({ fps, frame: Math.max(0, frame - ACCEPT_FRAME), config: { damping: 10, stiffness: 200 }, from: 0.8, to: 1.15 }) : 1 + ringPulse * 0.05})`,
             }}
           >
             📞
@@ -712,6 +1052,16 @@ const CallScene: React.FC = () => {
           <div style={{ fontSize: 12, color: GRAY, marginTop: 8 }}>Accept</div>
         </div>
       </div>
+
+      {/* Green flash on accept */}
+      {accepted && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'radial-gradient(circle, rgba(52,199,89,0.3) 0%, transparent 70%)',
+          opacity: interpolate(frame, [ACCEPT_FRAME, ACCEPT_FRAME + 10, ACCEPT_FRAME + 20], [0, 0.8, 0], { extrapolateRight: 'clamp' }),
+          pointerEvents: 'none',
+        }} />
+      )}
     </AbsoluteFill>
   );
 };
@@ -721,8 +1071,19 @@ const NewsFeedScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const cardScale = spring({ fps, frame, config: { damping: 12 }, from: 0.95, to: 1 });
-  const cardOpacity = interpolate(frame, [0, 12], [0, 1], { extrapolateRight: 'clamp' });
+  // Entrance: slide up from bottom (like switching tabs)
+  const enterY = spring({ fps, frame, config: { damping: 14, stiffness: 100 }, from: 60, to: 0 });
+  const enterOpacity = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: 'clamp' });
+
+  // Exit: zoom into dashboard
+  const EXIT_FRAME = 128;
+  const exitScale = frame >= EXIT_FRAME
+    ? spring({ fps, frame: Math.max(0, frame - EXIT_FRAME), config: { damping: 10, stiffness: 80 }, from: 1, to: 1.1 })
+    : 1;
+  const exitOpacity = interpolate(frame, [EXIT_FRAME, EXIT_FRAME + 20], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  const cardScale = spring({ fps, frame: Math.max(0, frame - 5), config: { damping: 12 }, from: 0.95, to: 1 });
+  const cardOpacity = interpolate(frame, [5, 15], [0, 1], { extrapolateRight: 'clamp' });
   const reactionsOpacity = interpolate(frame, [40, 55], [0, 1], { extrapolateRight: 'clamp' });
   const commentOpacity = interpolate(frame, [60, 75], [0, 1], { extrapolateRight: 'clamp' });
   const comment2Opacity = interpolate(frame, [85, 100], [0, 1], { extrapolateRight: 'clamp' });
@@ -734,6 +1095,8 @@ const NewsFeedScene: React.FC = () => {
         fontFamily: FONT,
         display: 'flex',
         flexDirection: 'column',
+        transform: `translateY(${enterY}px) scale(${exitScale})`,
+        opacity: enterOpacity * exitOpacity,
       }}
     >
       <StatusBar />
@@ -863,6 +1226,37 @@ const NewsFeedScene: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Bottom nav bar */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-around', padding: '10px 0 24px',
+        borderTop: '1px solid #222',
+      }}>
+        {[
+          { icon: '📰', label: 'Feed', active: true },
+          { icon: '💬', label: 'Chat', active: false },
+          { icon: '📊', label: 'Dashboard', active: false },
+          { icon: '⚙️', label: 'Settings', active: false },
+        ].map((tab, i) => {
+          const isDashboard = i === 2;
+          const dashTapped = isDashboard && frame >= EXIT_FRAME;
+          const dashTapScale = dashTapped
+            ? spring({ fps, frame: Math.max(0, frame - EXIT_FRAME), config: { damping: 15, stiffness: 300 }, from: 0.85, to: 1 })
+            : 1;
+          return (
+            <div key={tab.label} style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+              transform: `scale(${dashTapScale})`,
+            }}>
+              <span style={{ fontSize: 18 }}>{tab.icon}</span>
+              <span style={{
+                fontSize: 9, fontWeight: 600,
+                color: dashTapped ? PRIMARY : tab.active ? '#fff' : GRAY,
+              }}>{tab.label}</span>
+            </div>
+          );
+        })}
+      </div>
     </AbsoluteFill>
   );
 };
@@ -871,6 +1265,14 @@ const NewsFeedScene: React.FC = () => {
 const DashboardScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+
+  // Entrance: scale up from dashboard tab
+  const enterScale = spring({ fps, frame, config: { damping: 12, stiffness: 80 }, from: 0.9, to: 1 });
+  const enterOpacity = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: 'clamp' });
+
+  // Exit: fade to outro
+  const EXIT_FRAME = 130;
+  const exitOpacity = interpolate(frame, [EXIT_FRAME, EXIT_FRAME + 18], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   const headerOpacity = interpolate(frame, [0, 12], [0, 1], { extrapolateRight: 'clamp' });
 
@@ -893,6 +1295,8 @@ const DashboardScene: React.FC = () => {
         fontFamily: FONT,
         display: 'flex',
         flexDirection: 'column',
+        transform: `scale(${enterScale})`,
+        opacity: enterOpacity * exitOpacity,
       }}
     >
       <StatusBar />
@@ -1148,14 +1552,15 @@ const OutroScene: React.FC = () => {
 
 // ─── Main Presentation ────────────────────────────────────
 export const StarDamagePresentation: React.FC = () => {
-  const SPLASH = 90;    // 3s
-  const ARCHETYPE = 150; // 5s
-  const NOTIFS = 150;    // 5s
-  const CHAT = 240;      // 8s
-  const CALL = 120;      // 4s
-  const NEWS = 150;      // 5s
-  const DASHBOARD = 150; // 5s
-  const OUTRO = 150;     // 5s
+  const SPLASH = 90;      // 3s
+  const HOMESCREEN = 120; // 4s
+  const MUSICAPP = 180;   // 6s
+  const NOTIFS = 150;     // 5s
+  const CHAT = 240;       // 8s
+  const CALL = 120;       // 4s
+  const NEWS = 150;       // 5s
+  const DASHBOARD = 150;  // 5s
+  const OUTRO = 150;      // 5s
 
   let f = 0;
 
@@ -1166,11 +1571,16 @@ export const StarDamagePresentation: React.FC = () => {
       </Sequence>
 
       {(() => { f += SPLASH; return null; })()}
-      <Sequence from={f} durationInFrames={ARCHETYPE}>
-        <ArchetypeScene />
+      <Sequence from={f} durationInFrames={HOMESCREEN}>
+        <HomeScreenScene />
       </Sequence>
 
-      {(() => { f += ARCHETYPE; return null; })()}
+      {(() => { f += HOMESCREEN; return null; })()}
+      <Sequence from={f} durationInFrames={MUSICAPP}>
+        <MusicAppScene />
+      </Sequence>
+
+      {(() => { f += MUSICAPP; return null; })()}
       <Sequence from={f} durationInFrames={NOTIFS}>
         <NotificationScene />
       </Sequence>
