@@ -151,11 +151,10 @@ const SplashScene: React.FC = () => {
 
 // ─── Scene: The Invite ───────────────────────────────────
 const inviteMessages = [
-  { title: 'Rick Dalton', body: 'hey kid, got a job for you', time: 'now', icon: '📻' },
+  { title: 'Rick Dalton', body: 'got a job for you kid', time: 'now', icon: '📻' },
   { title: 'Rick Dalton', body: 'apocalypse radio needs a new artist manager', time: '1m ago', icon: '📻' },
-  { title: 'Rick Dalton', body: 'check these guys out and pick one', time: '2m ago', icon: '📻' },
+  { title: 'Rick Dalton', body: 'pick one. don\'t screw it up 😤', time: '2m ago', icon: '📻' },
   { title: 'Rick Dalton', body: 'instagram.com/stardamage/artists', time: '3m ago', icon: '📻', isLink: true },
-  { title: 'Rick Dalton', body: "don't screw this up 😤", time: '3m ago', icon: '📻' },
 ];
 
 const InviteScene: React.FC = () => {
@@ -163,7 +162,7 @@ const InviteScene: React.FC = () => {
   const { fps } = useVideoConfig();
 
   // Exit
-  const EXIT_FRAME = 170;
+  const EXIT_FRAME = 135;
   const exitOpacity = interpolate(frame, [EXIT_FRAME, EXIT_FRAME + 18], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   const visibleCount = inviteMessages.filter((_, i) => frame >= 15 + i * 25).length;
@@ -862,25 +861,21 @@ const InstagramArtistScene: React.FC = () => {
 
 // ─── Scene: The Intro (meeting Johnny Vex) ───────────────
 const introMessages: ChatMessage[] = [
-  { from: 'you', text: "Hey Johnny, I'm the new manager from Apocalypse Radio. Rick sent me your way.", delay: 10 },
-  { from: 'star', text: "oh great another suit", delay: 40 },
-  { from: 'star', text: "look I don't need a babysitter ok", delay: 60 },
-  { from: 'you', text: "Not here to babysit. I'm here to make you famous.", delay: 90 },
-  { from: 'star', text: "...", delay: 115 },
-  { from: 'star', text: "ok I'm listening", delay: 130 },
-  { from: 'you', text: "I saw your set at the underground last week. You've got something. But you need direction.", delay: 155 },
-  { from: 'star', text: "fine. but I do things MY way", delay: 185 },
-  { from: 'star', text: "rule 1: don't tell me what to wear", delay: 200 },
-  { from: 'star', text: "rule 2: don't talk to Mika", delay: 215 },
-  { from: 'star', text: "rule 3: never EVER cancel a gig without asking me first", delay: 230 },
-  { from: 'you', text: "Deal. Let's get to work. 🤝", delay: 260 },
+  { from: 'you', text: "Hey, Rick sent me. I'm your new manager.", delay: 10 },
+  { from: 'star', text: "oh great another suit", delay: 35 },
+  { from: 'you', text: "Not a suit. I'm here to make you famous.", delay: 60 },
+  { from: 'star', text: "fine. but I do things MY way", delay: 85 },
+  { from: 'star', text: "rule 1: don't tell me what to wear", delay: 100 },
+  { from: 'star', text: "rule 2: don't talk to Mika", delay: 115 },
+  { from: 'star', text: "rule 3: never cancel a gig without asking", delay: 130 },
+  { from: 'you', text: "Deal. 🤝", delay: 155 },
 ];
 
 const IntroScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const EXIT_FRAME = 280;
+  const EXIT_FRAME = 185;
   const exitOpacity = interpolate(frame, [EXIT_FRAME, EXIT_FRAME + 18], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   return (
@@ -1135,14 +1130,12 @@ interface ChatMessage {
 }
 
 const chatMessages: ChatMessage[] = [
-  { from: 'star', text: "yo I got offered a gig at The Basement tonight", delay: 10 },
-  { from: 'star', text: "but Mika wants me to go to this party at some producer's house", delay: 35 },
-  { from: 'star', text: "what should I do", delay: 55 },
-  { from: 'you', text: "Take the gig. You need the stage time.", delay: 85 },
-  { from: 'star', text: "ugh fine", delay: 115 },
-  { from: 'star', text: "but if Mika breaks up with me it's your fault", delay: 130 },
-  { from: 'you', text: "I'll handle Mika.", delay: 160 },
-  { from: 'star', text: "😂 good luck with that", delay: 180 },
+  { from: 'star', text: "gig at The Basement tonight or party at a producer's house. what do I do", delay: 10 },
+  { from: 'you', text: "Take the gig. You need stage time.", delay: 40 },
+  { from: 'star', text: "ugh fine", delay: 65 },
+  { from: 'star', text: "if Mika breaks up with me it's your fault", delay: 80 },
+  { from: 'you', text: "I'll handle Mika.", delay: 105 },
+  { from: 'star', text: "😂 good luck with that", delay: 125 },
 ];
 
 const ChatScene: React.FC = () => {
@@ -1150,7 +1143,7 @@ const ChatScene: React.FC = () => {
   const { fps } = useVideoConfig();
 
   // Exit: screen darkens as call comes in
-  const CALL_BANNER_FRAME = 210;
+  const CALL_BANNER_FRAME = 150;
   const exitDarken = interpolate(frame, [CALL_BANNER_FRAME, CALL_BANNER_FRAME + 25], [0, 0.4], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   return (
@@ -1975,11 +1968,11 @@ interface SceneDef {
 
 const SCENE_DEFS: SceneDef[] = [
   { name: 'Splash',        duration: 90,  component: SplashScene },
-  { name: 'The Invite',     duration: 190, component: InviteScene },
+  { name: 'The Invite',     duration: 150, component: InviteScene },
   { name: 'Artists',        duration: 190, component: InstagramArtistScene, tapIndex: 4  }, // Instagram
-  { name: 'The Intro',      duration: 300, component: IntroScene,          tapIndex: 7  }, // Messages
+  { name: 'The Intro',      duration: 200, component: IntroScene,          tapIndex: 7  }, // Messages
   { name: 'Notifications',  duration: 150, component: NotificationScene },
-  { name: 'Chat',           duration: 240, component: ChatScene,           tapIndex: 7  }, // Messages
+  { name: 'Chat',           duration: 180, component: ChatScene,           tapIndex: 7  }, // Messages
   { name: 'Call',           duration: 120, component: CallScene },                         // no intro
   { name: 'News',           duration: 150, component: NewsFeedScene,       tapIndex: 4  }, // Instagram
   { name: 'Dashboard',      duration: 150, component: DashboardScene,      tapIndex: 2  }, // Star Damage
