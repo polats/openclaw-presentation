@@ -169,7 +169,7 @@ const InviteScene: React.FC = () => {
   const visibleCount = inviteMessages.filter((_, i) => frame >= 15 + i * 25).length;
 
   return (
-    <AbsoluteFill style={{ backgroundColor: '#000', fontFamily: FONT, opacity: exitOpacity }}>
+    <AbsoluteFill style={{ backgroundColor: '#000', fontFamily: FONT }}>
       {/* Home screen background */}
       <AbsoluteFill>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)', opacity: 0.7 }} />
@@ -452,7 +452,6 @@ const MusicAppScene: React.FC = () => {
         fontFamily: FONT,
         display: 'flex',
         flexDirection: 'column',
-        opacity: exitOpacity,
       }}
     >
       <StatusBar />
@@ -661,16 +660,6 @@ const getImageSrc = (imageFile: string) => {
 // ─── Instagram Artist Selection ──────────────────────────
 const igArtists = [
   {
-    name: 'Johnny Vex',
-    handle: '@johnnvex',
-    type: 'THE DIVA',
-    bio: 'Ego. Drama. Sold-out shows. 🎤\nBookings: stardamage.mgmt@gmail.com',
-    followers: '2.1M',
-    following: '342',
-    posts: '847',
-    image: 'star-damage/johnny-vex.png',
-  },
-  {
     name: 'Raz Korvus',
     handle: '@razkorvus',
     type: 'THE PUNK',
@@ -690,6 +679,16 @@ const igArtists = [
     posts: '94',
     image: 'star-damage/sable-moon.png',
   },
+  {
+    name: 'Johnny Vex',
+    handle: '@johnnyvex',
+    type: 'THE DIVA',
+    bio: 'Ego. Drama. Sold-out shows. 🎤\nBookings: stardamage.mgmt@gmail.com',
+    followers: '2.1M',
+    following: '342',
+    posts: '847',
+    image: 'star-damage/johnny-vex.png',
+  },
 ];
 
 const InstagramArtistScene: React.FC = () => {
@@ -707,10 +706,10 @@ const InstagramArtistScene: React.FC = () => {
   const slideX = spring({ fps, frame: swipeFrame, config: { damping: 14, stiffness: 100 }, from: 390, to: 0 });
   const contentOpacity = interpolate(swipeFrame, [0, 8], [0, 1], { extrapolateRight: 'clamp' });
 
-  // Exit: select Johnny Vex
-  const SELECT_FRAME = 170;
-  const selected = frame >= SELECT_FRAME;
-  const exitOpacity = interpolate(frame, [SELECT_FRAME, SELECT_FRAME + 18], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  // Exit: press Message on Johnny Vex (last profile)
+  const MSG_FRAME = 160;
+  const messaged = frame >= MSG_FRAME && activeIndex === 2;
+  const exitOpacity = interpolate(frame, [MSG_FRAME + 5, MSG_FRAME + 22], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   // Dot indicator swipe animation
   const dotSlide = spring({ fps, frame: swipeFrame, config: { damping: 12 }, from: -3, to: 0 });
@@ -722,7 +721,6 @@ const InstagramArtistScene: React.FC = () => {
         fontFamily: FONT,
         display: 'flex',
         flexDirection: 'column',
-        opacity: exitOpacity,
       }}
     >
       {/* Instagram header */}
@@ -795,14 +793,15 @@ const InstagramArtistScene: React.FC = () => {
         {/* Action buttons */}
         <div style={{ display: 'flex', gap: 6, padding: '12px 16px 0' }}>
           <div style={{
-            flex: 1, background: selected && activeIndex === 0 ? '#E1306C' : '#363636',
+            flex: 1, background: messaged ? '#E1306C' : '#363636',
             borderRadius: 8, padding: '8px 0', textAlign: 'center',
             fontSize: 13, fontWeight: 600, color: '#fff',
-            transform: `scale(${selected && activeIndex === 0
-              ? spring({ fps, frame: Math.max(0, frame - SELECT_FRAME), config: { damping: 12, stiffness: 200 }, from: 0.9, to: 1 })
+            transform: `scale(${messaged
+              ? spring({ fps, frame: Math.max(0, frame - MSG_FRAME), config: { damping: 12, stiffness: 200 }, from: 0.85, to: 1 })
               : 1})`,
+            boxShadow: messaged ? '0 0 16px #E1306C66' : 'none',
           }}>
-            {selected && activeIndex === 0 ? '★ Managing' : 'Manage'}
+            Message
           </div>
           <div style={{
             width: 36, background: '#363636', borderRadius: 8,
@@ -861,6 +860,129 @@ const InstagramArtistScene: React.FC = () => {
   );
 };
 
+// ─── Scene: The Intro (meeting Johnny Vex) ───────────────
+const introMessages: ChatMessage[] = [
+  { from: 'you', text: "Hey Johnny, I'm the new manager from Apocalypse Radio. Rick sent me your way.", delay: 10 },
+  { from: 'star', text: "oh great another suit", delay: 40 },
+  { from: 'star', text: "look I don't need a babysitter ok", delay: 60 },
+  { from: 'you', text: "Not here to babysit. I'm here to make you famous.", delay: 90 },
+  { from: 'star', text: "...", delay: 115 },
+  { from: 'star', text: "ok I'm listening", delay: 130 },
+  { from: 'you', text: "I saw your set at the underground last week. You've got something. But you need direction.", delay: 155 },
+  { from: 'star', text: "fine. but I do things MY way", delay: 185 },
+  { from: 'star', text: "rule 1: don't tell me what to wear", delay: 200 },
+  { from: 'star', text: "rule 2: don't talk to Mika", delay: 215 },
+  { from: 'star', text: "rule 3: never EVER cancel a gig without asking me first", delay: 230 },
+  { from: 'you', text: "Deal. Let's get to work. 🤝", delay: 260 },
+];
+
+const IntroScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const EXIT_FRAME = 280;
+  const exitOpacity = interpolate(frame, [EXIT_FRAME, EXIT_FRAME + 18], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  return (
+    <AbsoluteFill
+      style={{
+        backgroundColor: BG,
+        fontFamily: FONT,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <StatusBar />
+
+      {/* Chat header */}
+      <div style={{
+        padding: '12px 20px',
+        borderBottom: '1px solid #222',
+        display: 'flex', alignItems: 'center', gap: 12,
+      }}>
+        <div style={{ fontSize: 18, color: '#E1306C' }}>‹</div>
+        <div style={{
+          width: 36, height: 36, borderRadius: 18, overflow: 'hidden',
+          border: '2px solid #E1306C',
+        }}>
+          <img
+            src={getImageSrc('star-damage/johnny-vex.png')}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        </div>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>Johnny Vex</div>
+          <div style={{ fontSize: 11, color: '#4CD964' }}>online now</div>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div style={{
+        flex: 1, padding: '16px 14px',
+        display: 'flex', flexDirection: 'column', gap: 8,
+        overflowY: 'hidden',
+      }}>
+        {introMessages.map((msg, i) => {
+          const msgOpacity = interpolate(frame, [msg.delay, msg.delay + 8], [0, 1], { extrapolateRight: 'clamp' });
+          const msgY = spring({
+            fps, frame: Math.max(0, frame - msg.delay),
+            config: { damping: 14 }, from: 15, to: 0,
+          });
+          const isYou = msg.from === 'you';
+
+          const showTyping = frame >= msg.delay - 15 && frame < msg.delay && i > 0;
+
+          return (
+            <React.Fragment key={i}>
+              {showTyping && msg.from === 'star' && (
+                <div style={{ alignSelf: 'flex-start', display: 'flex', gap: 4, padding: '8px 14px', background: CARD_BG, borderRadius: 18 }}>
+                  {[0, 1, 2].map((d) => (
+                    <div key={d} style={{
+                      width: 7, height: 7, borderRadius: '50%', background: GRAY,
+                      opacity: interpolate((frame + d * 5) % 20, [0, 10, 20], [0.3, 1, 0.3]),
+                    }} />
+                  ))}
+                </div>
+              )}
+              <div style={{
+                alignSelf: isYou ? 'flex-end' : 'flex-start',
+                maxWidth: '80%',
+                opacity: msgOpacity,
+                transform: `translateY(${msgY}px)`,
+              }}>
+                <div style={{
+                  background: isYou ? PRIMARY : CARD_BG,
+                  color: '#fff', padding: '10px 14px',
+                  borderRadius: 18,
+                  borderBottomRightRadius: isYou ? 4 : 18,
+                  borderBottomLeftRadius: isYou ? 18 : 4,
+                  fontSize: 14, lineHeight: 1.4,
+                }}>{msg.text}</div>
+              </div>
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {/* Input bar */}
+      <div style={{
+        padding: '10px 14px 24px', borderTop: '1px solid #222',
+        display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        <div style={{
+          flex: 1, background: CARD_BG, borderRadius: 20,
+          padding: '10px 16px', fontSize: 14, color: GRAY,
+        }}>Message Johnny...</div>
+        <div style={{
+          width: 36, height: 36, borderRadius: 18, background: PRIMARY,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 16, color: '#fff',
+        }}>↑</div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 // ─── Scene: Notification Storm ───────────────────────────
 const notifications = [
   { app: 'Star Damage', title: 'Johnny Vex', body: 'bro where are you I need to talk', time: '2m ago' },
@@ -887,7 +1009,6 @@ const NotificationScene: React.FC = () => {
       style={{
         backgroundColor: '#000',
         fontFamily: FONT,
-        opacity: exitOpacity,
       }}
     >
       {/* Home screen background */}
@@ -1264,7 +1385,7 @@ const CallScene: React.FC = () => {
         flexDirection: 'column',
         alignItems: 'center',
         transform: `scale(${enterScale})`,
-        opacity: enterOpacity * exitOpacity,
+        opacity: enterOpacity,
       }}
     >
       <StatusBar time="2:47" />
@@ -1294,16 +1415,16 @@ const CallScene: React.FC = () => {
             width: 100,
             height: 100,
             borderRadius: 50,
-            background: `linear-gradient(135deg, ${PRIMARY}, ${GOLD})`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 48,
+            overflow: 'hidden',
             transform: `scale(${avatarScale})`,
             boxShadow: `0 0 ${30 + ringPulse * 20}px ${PRIMARY}66`,
+            border: `3px solid ${PRIMARY}`,
           }}
         >
-          🎤
+          <img
+            src={getImageSrc('star-damage/johnny-vex.png')}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
         </div>
 
         <div style={{ opacity: nameOpacity, textAlign: 'center' }}>
@@ -1396,7 +1517,6 @@ const NewsFeedScene: React.FC = () => {
         fontFamily: FONT,
         display: 'flex',
         flexDirection: 'column',
-        opacity: exitOpacity,
       }}
     >
       <StatusBar />
@@ -1426,11 +1546,11 @@ const NewsFeedScene: React.FC = () => {
             transform: `scale(${cardScale})`,
           }}
         >
-          {/* Fake article image */}
+          {/* Article image */}
           <div
             style={{
               height: 180,
-              background: `linear-gradient(135deg, #1a0a10, ${PRIMARY}22, #0a0a1a)`,
+              background: `url(${getImageSrc('star-damage/altercation.png')}) center/cover`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1454,7 +1574,6 @@ const NewsFeedScene: React.FC = () => {
             >
               Breaking
             </div>
-            <div style={{ fontSize: 64, opacity: 0.4 }}>📸</div>
             <div
               style={{
                 position: 'absolute',
@@ -1591,7 +1710,6 @@ const DashboardScene: React.FC = () => {
         fontFamily: FONT,
         display: 'flex',
         flexDirection: 'column',
-        opacity: exitOpacity,
       }}
     >
       <StatusBar />
@@ -1859,6 +1977,7 @@ const SCENE_DEFS: SceneDef[] = [
   { name: 'Splash',        duration: 90,  component: SplashScene },
   { name: 'The Invite',     duration: 190, component: InviteScene },
   { name: 'Artists',        duration: 190, component: InstagramArtistScene, tapIndex: 4  }, // Instagram
+  { name: 'The Intro',      duration: 300, component: IntroScene,          tapIndex: 7  }, // Messages
   { name: 'Notifications',  duration: 150, component: NotificationScene },
   { name: 'Chat',           duration: 240, component: ChatScene,           tapIndex: 7  }, // Messages
   { name: 'Call',           duration: 120, component: CallScene },                         // no intro
