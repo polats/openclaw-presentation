@@ -1,0 +1,292 @@
+/* ============================================================
+   APOCALYPSE RADIO — Core Tokens
+   Colors, type, spacing, radii, shadow, motion
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* ——— Ink / Base ——— */
+  --ink-000: #000000;            /* absolute black, mix wells */
+  --ink-050: #060606;            /* app chrome */
+  --ink-100: #0B0B0C;            /* default canvas */
+  --ink-200: #111113;            /* panel */
+  --ink-300: #17171A;            /* raised panel */
+  --ink-400: #1E1E22;            /* hover panel */
+  --ink-500: #26262B;            /* divider / subtle line */
+  --ink-600: #34343B;            /* border strong */
+  --ink-700: #4A4A52;            /* muted control */
+
+  /* ——— Bone / Foreground ——— */
+  --bone-900: #F7F3EA;           /* primary text, off-white w/ warmth */
+  --bone-700: #D8D2C2;           /* secondary text */
+  --bone-500: #9A9385;           /* tertiary / labels */
+  --bone-300: #6A6558;           /* disabled */
+
+  /* ——— Signal Accents ——— */
+  /* Emergency orange — primary CTA, recording, "ON AIR" */
+  --signal-500: #FF5A1F;
+  --signal-400: #FF7A45;
+  --signal-600: #E14710;
+  --signal-050: #2A130B;         /* tinted bg */
+
+  /* Phosphor green — waveforms, activity, confirmations */
+  --phosphor-500: #8CFF4B;
+  --phosphor-400: #AEFF7D;
+  --phosphor-600: #5FCC22;
+  --phosphor-050: #0F2209;
+
+  /* Agent violet — AI presence, generative moments */
+  --agent-500: #C56BFF;
+  --agent-400: #D89AFF;
+  --agent-600: #8A32CC;
+  --agent-050: #1E0D2B;
+
+  /* Siren red — errors, destructive */
+  --siren-500: #FF3344;
+  --siren-400: #FF6676;
+  --siren-600: #C41020;
+
+  /* Radio cyan — links, informational */
+  --radio-500: #5EE7FF;
+  --radio-400: #93EFFF;
+  --radio-600: #1AA6C2;
+
+  /* ——— Semantic ——— */
+  --bg: var(--ink-100);
+  --bg-sunken: var(--ink-050);
+  --bg-raised: var(--ink-200);
+  --bg-overlay: rgba(6, 6, 6, 0.72);
+  --panel: var(--ink-200);
+  --panel-hover: var(--ink-300);
+
+  --fg: var(--bone-900);
+  --fg-muted: var(--bone-700);
+  --fg-dim: var(--bone-500);
+  --fg-disabled: var(--bone-300);
+
+  --border: var(--ink-500);
+  --border-strong: var(--ink-600);
+  --border-focus: var(--signal-500);
+
+  --accent: var(--signal-500);
+  --accent-fg: #0B0B0C;
+  --success: var(--phosphor-500);
+  --info: var(--radio-500);
+  --danger: var(--siren-500);
+  --agent: var(--agent-500);
+
+  /* ——— Track / DAW specific ——— */
+  --track-kick: #FF5A1F;
+  --track-synth: #C56BFF;
+  --track-vocal: #5EE7FF;
+  --track-drum: #8CFF4B;
+  --track-fx: #FFD13F;
+  --track-bass: #FF6FA3;
+
+  /* ——— Type families ——— */
+  --font-display: 'Instrument Serif', 'Times New Roman', serif;
+  --font-sans: 'Space Grotesk', -apple-system, 'Helvetica Neue', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+
+  /* ——— Type scale ——— */
+  --fs-xs: 10px;                 /* technical labels, monospace */
+  --fs-sm: 12px;                 /* micro copy, meta */
+  --fs-base: 14px;               /* body default in app */
+  --fs-md: 16px;                 /* body in marketing */
+  --fs-lg: 20px;
+  --fs-xl: 28px;
+  --fs-2xl: 40px;
+  --fs-3xl: 64px;
+  --fs-4xl: 96px;
+  --fs-5xl: 148px;               /* hero, oversized display */
+
+  --lh-tight: 1.0;
+  --lh-snug: 1.15;
+  --lh-normal: 1.35;
+  --lh-relaxed: 1.55;
+
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.08em;
+  --tracking-mega: 0.22em;       /* ALL-CAPS labels */
+
+  /* ——— Spacing (4px base) ——— */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+  --s-20: 80px;
+  --s-24: 96px;
+
+  /* ——— Radii (largely square brand) ——— */
+  --r-none: 0;
+  --r-xs: 2px;
+  --r-sm: 3px;
+  --r-md: 6px;
+  --r-lg: 10px;
+  --r-pill: 999px;
+
+  /* ——— Shadows ——— */
+  --shadow-sm: 0 1px 0 rgba(0,0,0,0.5);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg: 0 18px 40px rgba(0,0,0,0.6), 0 2px 0 rgba(255,255,255,0.03) inset;
+  --shadow-inset: 0 1px 0 rgba(255,255,255,0.04) inset, 0 -1px 0 rgba(0,0,0,0.6) inset;
+  --glow-signal: 0 0 0 1px rgba(255, 90, 31, 0.4), 0 0 24px rgba(255, 90, 31, 0.28);
+  --glow-phosphor: 0 0 0 1px rgba(140, 255, 75, 0.4), 0 0 20px rgba(140, 255, 75, 0.22);
+  --glow-agent: 0 0 0 1px rgba(197, 107, 255, 0.4), 0 0 24px rgba(197, 107, 255, 0.25);
+
+  /* ——— Motion ——— */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-snap: cubic-bezier(0.9, 0, 0.1, 1);   /* DAW feel — sharp */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 400ms;
+}
+
+/* ============================================================
+   SEMANTIC TYPE CLASSES
+   ============================================================ */
+
+.ar-display-1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-5xl);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  color: var(--fg);
+}
+.ar-display-2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-4xl);
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  color: var(--fg);
+}
+.ar-display-3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-3xl);
+  line-height: 1.0;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+}
+.ar-h1 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-snug);
+  letter-spacing: -0.015em;
+  color: var(--fg);
+}
+.ar-h2 {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: var(--fs-xl);
+  line-height: var(--lh-snug);
+  letter-spacing: -0.01em;
+  color: var(--fg);
+}
+.ar-h3 {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: var(--fs-lg);
+  line-height: var(--lh-normal);
+  color: var(--fg);
+}
+.ar-body {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: var(--fs-md);
+  line-height: var(--lh-relaxed);
+  color: var(--fg-muted);
+}
+.ar-body-sm {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: var(--fs-base);
+  line-height: var(--lh-relaxed);
+  color: var(--fg-muted);
+}
+.ar-meta {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+  color: var(--fg-dim);
+  letter-spacing: 0;
+}
+.ar-label {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--fs-xs);
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-mega);
+  color: var(--fg-dim);
+}
+.ar-code {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: var(--fs-base);
+  line-height: var(--lh-normal);
+  color: var(--fg);
+}
+.ar-eyebrow {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--fs-xs);
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-mega);
+  color: var(--signal-500);
+}
+.ar-serif-italic {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* ============================================================
+   TEXTURE / GRAIN — a brand primitive used almost everywhere
+   ============================================================ */
+
+.ar-grain {
+  position: relative;
+  isolation: isolate;
+}
+.ar-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.08;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-size: 160px 160px;
+  z-index: 1;
+}
+
+/* Scanlines — optional CRT feel */
+.ar-scanlines::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 2px,
+    rgba(255, 255, 255, 0.022) 2px,
+    rgba(255, 255, 255, 0.022) 3px
+  );
+  z-index: 1;
+}

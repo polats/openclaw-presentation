@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 36" fill="none">
+  <rect x="0.5" y="0.5" width="119" height="35" rx="2" fill="#0B0B0C" stroke="#FF5A1F"></rect>
+  <circle cx="14" cy="18" r="4" fill="#FF5A1F"></circle>
+  <circle cx="14" cy="18" r="8" fill="none" stroke="#FF5A1F" stroke-opacity="0.4"></circle>
+  <text x="30" y="24" font-family="&#39;JetBrains Mono&#39;, monospace" font-size="14" fill="#FF5A1F" letter-spacing="0.28em" font-weight="600">ON AIR</text>
+</svg>

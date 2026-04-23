@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 72" fill="none">
+  
+  <g transform="translate(10, 8)">
+    
+    <line x1="0" y1="52" x2="56" y2="52" stroke="#6A6558" stroke-width="0.75" stroke-dasharray="1 2"></line>
+
+    
+    <g transform="translate(28, 52) rotate(-8)">
+      
+      <line x1="-9" y1="0" x2="0" y2="-42" stroke="#F7F3EA" stroke-width="1.25" stroke-linecap="square"></line>
+      <line x1="9" y1="0" x2="0" y2="-42" stroke="#F7F3EA" stroke-width="1.25" stroke-linecap="square"></line>
+      
+      <line x1="-6.5" y1="-10" x2="6.5" y2="-10" stroke="#F7F3EA" stroke-width="0.9"></line>
+      <line x1="-5" y1="-20" x2="5" y2="-20" stroke="#F7F3EA" stroke-width="0.9"></line>
+      <line x1="-3.5" y1="-30" x2="3.5" y2="-30" stroke="#F7F3EA" stroke-width="0.9"></line>
+      
+      <line x1="-6.5" y1="-10" x2="5" y2="-20" stroke="#F7F3EA" stroke-width="0.75"></line>
+      <line x1="6.5" y1="-10" x2="-2" y2="-17" stroke="#F7F3EA" stroke-width="0.75" stroke-dasharray="1.5 1.5"></line>
+      <line x1="-5" y1="-20" x2="3.5" y2="-30" stroke="#F7F3EA" stroke-width="0.75"></line>
+      <line x1="5" y1="-20" x2="-3.5" y2="-30" stroke="#F7F3EA" stroke-width="0.75" stroke-dasharray="1.5 1.5"></line>
+      
+      <line x1="0" y1="-42" x2="0" y2="-52" stroke="#F7F3EA" stroke-width="1.25" stroke-linecap="square"></line>
+      
+      <circle cx="0" cy="-52" r="1.75" fill="#FF5A1F"></circle>
+    </g>
+
+    
+    
+    <path d="M 28 6 Q 42 10 46 22" stroke="#FF5A1F" stroke-width="0.9" stroke-linecap="round" opacity="0.85"></path>
+    <path d="M 28 6 Q 48 12 52 30" stroke="#FF5A1F" stroke-width="0.75" stroke-linecap="round" opacity="0.4"></path>
+    <path d="M 28 6 Q 52 14 56 38" stroke="#FF5A1F" stroke-width="0.6" stroke-linecap="round" opacity="0.15"></path>
+
+    
+    <path d="M 28 7 C 27 11, 26.5 13, 27 14.5 C 27.5 16, 28.5 16, 29 14.5 C 29.5 13, 29 11, 28 7 Z" fill="#FF5A1F" opacity="0.95"></path>
+
+    
+    <g transform="translate(8, 52)" stroke="#6A6558" stroke-width="0.75">
+      <line x1="-2" y1="-2" x2="2" y2="2"></line>
+      <line x1="2" y1="-2" x2="-2" y2="2"></line>
+    </g>
+  </g>
+
+  
+  <g transform="translate(80, 0)">
+    <text x="0" y="34" font-family="&#39;Instrument Serif&#39;, &#39;Times New Roman&#39;, serif" font-size="28" fill="#F7F3EA" letter-spacing="-0.025em" font-style="italic">Apocalypse</text>
+    
+    <line x1="0" y1="38" x2="148" y2="38" stroke="#34343B" stroke-width="0.6"></line>
+    <text x="0" y="56" font-family="&#39;JetBrains Mono&#39;, monospace" font-size="10" fill="#FF5A1F" letter-spacing="0.32em" font-weight="500">R  A  D  I  O</text>
+    <text x="100" y="56" font-family="&#39;JetBrains Mono&#39;, monospace" font-size="10" fill="#6A6558" letter-spacing="0.22em" font-weight="400">/ nobody listening</text>
+  </g>
+</svg>

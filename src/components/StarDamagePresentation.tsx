@@ -7,6 +7,7 @@ import {
   spring,
   interpolate,
   staticFile,
+  getRemotionEnvironment,
 } from 'remotion';
 
 const PRIMARY = '#FF2D55';
@@ -649,7 +650,8 @@ const MusicAppScene: React.FC = () => {
 
 // ─── Asset helper ────────────────────────────────────────
 const getImageSrc = (imageFile: string) => {
-  if (typeof window !== 'undefined' && (window as any).remotion_isStudio) {
+  const env = getRemotionEnvironment();
+  if (env.isStudio || env.isRendering) {
     return staticFile(imageFile);
   }
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';

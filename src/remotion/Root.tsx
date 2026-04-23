@@ -5,11 +5,16 @@ import { PresentationTimeline } from '../components/PresentationTimeline';
 import { OpenclawPresentation } from '../components/OpenclawPresentation';
 import { SupercellPresentation } from '../components/SupercellPresentation';
 import { StarDamagePresentation, STAR_DAMAGE_TOTAL_FRAMES } from '../components/StarDamagePresentation';
+import { SupercellLabPresentation, SCLAB_TOTAL_FRAMES } from '../components/SupercellLabPresentation';
 
 import { loadFont } from '@remotion/google-fonts/PixelifySans';
 import { loadFont as loadSpaceGrotesk } from '@remotion/google-fonts/SpaceGrotesk';
+import { loadFont as loadInstrumentSerif } from '@remotion/google-fonts/InstrumentSerif';
+import { loadFont as loadJetBrainsMono } from '@remotion/google-fonts/JetBrainsMono';
 loadFont();
 loadSpaceGrotesk();
+loadInstrumentSerif();
+loadJetBrainsMono();
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -54,6 +59,15 @@ export const RemotionRoot: React.FC = () => {
         fps={30}
         width={390}
         height={844}
+      />
+
+      <Composition
+        id="SupercellLabPresentation"
+        component={SupercellLabPresentation}
+        durationInFrames={SCLAB_TOTAL_FRAMES}
+        fps={30}
+        width={1920}
+        height={1080}
       />
 
       <Composition
