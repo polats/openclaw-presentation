@@ -166,6 +166,52 @@ export const SupercellLab0429Presentation: React.FC = () => {
           extraSubs={{
             2: ['scenarios', 'object interactions', 'metagame'],
           }}
+          trackFooters={{
+            1: (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                  fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+                  fontSize: '1.5rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.04em',
+                  overflowWrap: 'anywhere',
+                  wordBreak: 'break-word',
+                }}
+              >
+                <a
+                  href="https://github.com/polats/woid"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: '#FF5A1F',
+                    textDecoration: 'underline',
+                    textUnderlineOffset: 6,
+                    textDecorationThickness: 2,
+                    textShadow: '0 0 14px rgba(255, 90, 31, 0.4)',
+                  }}
+                >
+                  → github.com/<br />polats/woid
+                </a>
+                <a
+                  href="https://woid.noods.cc/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: '#FF5A1F',
+                    textDecoration: 'underline',
+                    textUnderlineOffset: 6,
+                    textDecorationThickness: 2,
+                    textShadow: '0 0 14px rgba(255, 90, 31, 0.4)',
+                  }}
+                >
+                  → woid.noods.cc
+                </a>
+              </div>
+            ),
+          }}
           footer={
             <div style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
               <div

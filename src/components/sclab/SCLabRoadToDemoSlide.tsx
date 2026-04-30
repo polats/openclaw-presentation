@@ -36,6 +36,8 @@ export type SCLabRoadToDemoSlideProps = {
   highlightTrack?: number;
   /** Additional sub-bullets per track (1-indexed), rendered in a secondary color. */
   extraSubs?: Record<number, string[]>;
+  /** Optional footer content rendered below the sub-bullets of a given track (1-indexed). */
+  trackFooters?: Record<number, React.ReactNode>;
 };
 
 export const SCLabRoadToDemoSlide: React.FC<SCLabRoadToDemoSlideProps> = ({
@@ -45,6 +47,7 @@ export const SCLabRoadToDemoSlide: React.FC<SCLabRoadToDemoSlideProps> = ({
   footer,
   highlightTrack,
   extraSubs,
+  trackFooters,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -249,6 +252,22 @@ export const SCLabRoadToDemoSlide: React.FC<SCLabRoadToDemoSlideProps> = ({
                     );
                   })}
                 </div>
+
+                {trackFooters?.[si + 1] && (
+                  <div
+                    style={{
+                      marginTop: 8,
+                      opacity: interpolate(
+                        frame - (24 + sectionDelay + (section.subs.length + (extraSubs?.[si + 1]?.length ?? 0)) * 10 + 16),
+                        [0, 18],
+                        [0, 1],
+                        { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+                      ),
+                    }}
+                  >
+                    {trackFooters[si + 1]}
+                  </div>
+                )}
               </div>
             );
           })}
