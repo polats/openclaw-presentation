@@ -17,6 +17,8 @@ export type SCLabFeatureSlideProps = {
   videoPlaybackRate?: number;
   mediaLabel?: string;
   header?: React.ReactNode;
+  footer?: React.ReactNode;
+  imageFlex?: number;
 };
 
 export const SCLabFeatureSlide: React.FC<SCLabFeatureSlideProps> = ({
@@ -31,6 +33,8 @@ export const SCLabFeatureSlide: React.FC<SCLabFeatureSlideProps> = ({
   videoPlaybackRate = 1,
   mediaLabel,
   header,
+  footer,
+  imageFlex = 1,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
@@ -103,12 +107,27 @@ export const SCLabFeatureSlide: React.FC<SCLabFeatureSlideProps> = ({
                 </div>
               );
             })}
+            {footer && (
+              <div
+                style={{
+                  marginTop: 28,
+                  opacity: interpolate(
+                    frame - (features.length * 10 + 16),
+                    [0, 16],
+                    [0, 1],
+                    { extrapolateRight: 'clamp' },
+                  ),
+                }}
+              >
+                {footer}
+              </div>
+            )}
           </div>
 
           {(imageFile || videoFile) && (
             <div
               style={{
-                flex: videoFile ? '0 0 auto' : 1,
+                flex: videoFile ? '0 0 auto' : imageFlex,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
