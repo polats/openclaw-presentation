@@ -7,6 +7,7 @@ import { SupercellPresentation } from '../components/SupercellPresentation';
 import { StarDamagePresentation, STAR_DAMAGE_TOTAL_FRAMES } from '../components/StarDamagePresentation';
 import { SupercellLabPresentation, SCLAB_TOTAL_FRAMES } from '../components/SupercellLabPresentation';
 import { SupercellLab0429Presentation, SCLAB_0429_TOTAL_FRAMES } from '../components/SupercellLab0429Presentation';
+import { SupercellLab0508Presentation, SCLAB_0508_TOTAL_FRAMES } from '../components/SupercellLab0508Presentation';
 
 import { loadFont } from '@remotion/google-fonts/PixelifySans';
 import { loadFont as loadSpaceGrotesk } from '@remotion/google-fonts/SpaceGrotesk';
@@ -75,6 +76,15 @@ export const RemotionRoot: React.FC = () => {
         id="SupercellLab0429Presentation"
         component={SupercellLab0429Presentation}
         durationInFrames={SCLAB_0429_TOTAL_FRAMES}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+
+      <Composition
+        id="SupercellLab0508Presentation"
+        component={SupercellLab0508Presentation}
+        durationInFrames={SCLAB_0508_TOTAL_FRAMES}
         fps={30}
         width={1920}
         height={1080}

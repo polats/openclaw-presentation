@@ -6,9 +6,10 @@ import { SlideFrame, SCLabTitle, Rule } from './SCLabFrame';
 type Section = {
   main: string;
   subs: string[];
+  subColor?: string;
 };
 
-const SECTIONS: Section[] = [
+const DEFAULT_SECTIONS: Section[] = [
   {
     main: 'Focus on Human-Like Behavior',
     subs: [
@@ -38,6 +39,7 @@ export type SCLabRoadToDemoSlideProps = {
   extraSubs?: Record<number, string[]>;
   /** Optional footer content rendered below the sub-bullets of a given track (1-indexed). */
   trackFooters?: Record<number, React.ReactNode>;
+  sections?: Section[];
 };
 
 export const SCLabRoadToDemoSlide: React.FC<SCLabRoadToDemoSlideProps> = ({
@@ -48,7 +50,9 @@ export const SCLabRoadToDemoSlide: React.FC<SCLabRoadToDemoSlideProps> = ({
   highlightTrack,
   extraSubs,
   trackFooters,
+  sections,
 }) => {
+  const SECTIONS = sections ?? DEFAULT_SECTIONS;
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -181,7 +185,7 @@ export const SCLabRoadToDemoSlide: React.FC<SCLabRoadToDemoSlideProps> = ({
                           style={{
                             fontFamily: SCLAB_FONTS.mono,
                             fontSize: '0.9rem',
-                            color: SCLAB.signal['500'],
+                            color: section.subColor ?? SCLAB.signal['500'],
                             letterSpacing: '0.22em',
                             width: 48,
                             flexShrink: 0,
@@ -193,7 +197,7 @@ export const SCLabRoadToDemoSlide: React.FC<SCLabRoadToDemoSlideProps> = ({
                           style={{
                             fontFamily: SCLAB_FONTS.sans,
                             fontSize: '1.5rem',
-                            color: SCLAB.bone['700'],
+                            color: section.subColor ?? SCLAB.bone['700'],
                             lineHeight: 1.35,
                           }}
                         >

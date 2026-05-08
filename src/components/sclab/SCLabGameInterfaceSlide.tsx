@@ -4,7 +4,7 @@ import { SCLAB, SCLAB_FONTS } from './theme';
 import { SlideFrame, SCLabTitle, Rule } from './SCLabFrame';
 import { getAssetSrc } from './getAssetSrc';
 
-const PANELS = [
+const DEFAULT_PANELS = [
   { file: '0429/map.png', label: 'MAP' },
   { file: '0429/view.png', label: 'VIEW' },
 ];
@@ -12,19 +12,26 @@ const PANELS = [
 export type SCLabGameInterfaceSlideProps = {
   index: number;
   total: number;
+  title?: string;
+  eyebrow?: string;
+  panels?: { file: string; label: string }[];
 };
 
 export const SCLabGameInterfaceSlide: React.FC<SCLabGameInterfaceSlideProps> = ({
   index,
   total,
+  title = 'game interface',
+  eyebrow = 'INTERFACE · CLIENT',
+  panels = DEFAULT_PANELS,
 }) => {
+  const PANELS = panels;
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
   return (
     <AbsoluteFill>
-      <SlideFrame eyebrow="INTERFACE · CLIENT" index={index} total={total}>
-        <SCLabTitle italic size={6}>game interface</SCLabTitle>
+      <SlideFrame eyebrow={eyebrow} index={index} total={total}>
+        <SCLabTitle italic size={6}>{title}</SCLabTitle>
         <Rule width={120} />
 
         <div

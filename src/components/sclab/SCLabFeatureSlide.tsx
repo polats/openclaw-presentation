@@ -19,6 +19,7 @@ export type SCLabFeatureSlideProps = {
   header?: React.ReactNode;
   footer?: React.ReactNode;
   imageFlex?: number;
+  centerMedia?: boolean;
 };
 
 export const SCLabFeatureSlide: React.FC<SCLabFeatureSlideProps> = ({
@@ -35,6 +36,7 @@ export const SCLabFeatureSlide: React.FC<SCLabFeatureSlideProps> = ({
   header,
   footer,
   imageFlex = 1,
+  centerMedia = false,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
@@ -54,7 +56,8 @@ export const SCLabFeatureSlide: React.FC<SCLabFeatureSlideProps> = ({
         <SCLabTitle italic={titleItalic} size={6}>{title}</SCLabTitle>
         <Rule width={120} />
 
-        <div style={{ display: 'flex', gap: 64, flex: 1, minHeight: 0, alignItems: 'stretch' }}>
+        <div style={{ display: 'flex', gap: 64, flex: 1, minHeight: 0, alignItems: 'stretch', justifyContent: centerMedia ? 'center' : 'flex-start' }}>
+          {!centerMedia && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 8, minWidth: 0 }}>
             {header && (
               <div
@@ -123,18 +126,19 @@ export const SCLabFeatureSlide: React.FC<SCLabFeatureSlideProps> = ({
               </div>
             )}
           </div>
+          )}
 
           {(imageFile || videoFile) && (
             <div
               style={{
-                flex: videoFile ? '0 0 auto' : imageFlex,
+                flex: videoFile && !centerMedia ? '0 0 auto' : centerMedia ? '0 0 auto' : imageFlex,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 opacity: imgOpacity,
-                transform: videoFile ? `scale(${imgScale * 1.45})` : `scale(${imgScale})`,
-                transformOrigin: videoFile ? 'right 85%' : 'center center',
-                marginRight: videoFile ? 120 : 0,
+                transform: videoFile && !centerMedia ? `scale(${imgScale * 1.45})` : `scale(${imgScale})`,
+                transformOrigin: centerMedia ? 'center center' : videoFile ? 'right 85%' : 'center center',
+                marginRight: videoFile && !centerMedia ? 120 : 0,
                 minWidth: 0,
                 height: '100%',
               }}
