@@ -10,12 +10,16 @@
     "studio": "remotion studio src/remotion/Root.tsx"
   },
   "dependencies": {
+    "@react-three/fiber": "^9.6.1",
     "@remotion/google-fonts": "^4.0.434",
     "@remotion/player": "^4.0.434",
+    "@remotion/three": "^4.0.459",
+    "@types/three": "^0.184.1",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "remotion": "^4.0.434"
+    "remotion": "^4.0.434",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "@remotion/cli": "^4.0.434",

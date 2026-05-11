@@ -8,6 +8,7 @@ import { StarDamagePresentation, STAR_DAMAGE_TOTAL_FRAMES } from '../components/
 import { SupercellLabPresentation, SCLAB_TOTAL_FRAMES } from '../components/SupercellLabPresentation';
 import { SupercellLab0429Presentation, SCLAB_0429_TOTAL_FRAMES } from '../components/SupercellLab0429Presentation';
 import { SupercellLab0508Presentation, SCLAB_0508_TOTAL_FRAMES } from '../components/SupercellLab0508Presentation';
+import { TheAgencyTrailer, THE_AGENCY_TOTAL_FRAMES } from '../components/TheAgencyTrailer';
 
 import { loadFont } from '@remotion/google-fonts/PixelifySans';
 import { loadFont as loadSpaceGrotesk } from '@remotion/google-fonts/SpaceGrotesk';
@@ -85,6 +86,15 @@ export const RemotionRoot: React.FC = () => {
         id="SupercellLab0508Presentation"
         component={SupercellLab0508Presentation}
         durationInFrames={SCLAB_0508_TOTAL_FRAMES}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+
+      <Composition
+        id="TheAgencyTrailer"
+        component={TheAgencyTrailer}
+        durationInFrames={THE_AGENCY_TOTAL_FRAMES}
         fps={30}
         width={1920}
         height={1080}
