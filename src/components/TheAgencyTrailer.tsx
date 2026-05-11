@@ -58,8 +58,10 @@ const AGENCY_REVEAL_FRAME = 411;
 const SHADER_START_FRAME = AGENCY_REVEAL_FRAME + 45;
 // Crack fires 0.25s AFTER the in-video shader.
 const CRACK_START_FRAME = SHADER_START_FRAME + 8;
-// Title comes in once cracks are mostly drawn (85% of crack window).
-const TITLE_START_FRAME = CRACK_START_FRAME + Math.round(OPENER_CRACK_FRAMES * 0.85);
+// Title + slide backdrop appear AT THE SAME MOMENT the phone starts
+// to dolly. The phone moving and the title slamming in are
+// synchronized — one moment, two simultaneous beats.
+const TITLE_START_FRAME = EDI_VIDEO_FRAMES;
 
 const D = {
   // Phases overlap (crack starts mid-dolly) so total ends at
@@ -103,7 +105,12 @@ const fadeInOut = (frame: number, dur: number, fadeIn = 8, fadeOut = 8) =>
 //          rests tilted in lower-right
 // ============================================================================
 
-const PHONE_ASPECT_H_OVER_W = 932 / 430;
+// Aspect (height / width) of the captured edi-intro.mp4. The capture
+// script measures the phone's pixel bounds directly from the recording
+// (Wayland fractional scaling makes DOM coords unreliable), so the
+// dimensions drift. Check the script's "Phone aspect (h/w)" log line
+// after each capture and update here.
+const PHONE_ASPECT_H_OVER_W = 808 / 406;
 const BEZEL_PADDING = 0.07;
 const PHONE_PLANE_HEIGHT = 1000;
 const PHONE_PLANE_WIDTH = PHONE_PLANE_HEIGHT / PHONE_ASPECT_H_OVER_W;
