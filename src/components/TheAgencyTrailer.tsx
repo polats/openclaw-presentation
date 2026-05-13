@@ -2,8 +2,10 @@ import React, { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import {
   AbsoluteFill,
+  Audio,
   Sequence,
   Html5Video,
+  OffthreadVideo,
   staticFile,
   interpolate,
   spring,
@@ -47,7 +49,8 @@ const COLOR = {
 const EDI_VIDEO_FRAMES    = 480;  // 16.0s — full play of edi-intro.mp4
 const OPENER_DOLLY_FRAMES = 32;   // 1.07s — fast launch, quick settle
 const OPENER_CRACK_FRAMES = 50;   // 1.67s — glass break on the settled phone
-const OPENER_TITLE_FRAMES = 110;  // 3.67s — title reveal + hold
+const OPENER_TITLE_FRAMES = 55;   // 1.83s — title reveal + hold + static-transition tail (S00 ends at frame 535)
+const OPENER_TRANSITION_FRAMES = 4; // last 4 frames of S00 are a full-bleed static-shader transition
 
 // "The Agency" line appears ~13.7s into the trimmed clip (frame 411 at
 // 30fps). Computed from timing.json:
@@ -63,23 +66,34 @@ const CRACK_START_FRAME = SHADER_START_FRAME + 8;
 // synchronized — one moment, two simultaneous beats.
 const TITLE_START_FRAME = EDI_VIDEO_FRAMES;
 
+// ── Scene 01: Agency-gameplay video durations ───────────────────────
+// agency-gameplay.mp4 is ~11.97s = 359f. The video plays from frame 0;
+// the caption overlays the video early and fades out so the rest of
+// the clip reads clean.
+const AGENCY_VIDEO_FRAMES         = 360;  // 12.0s — gameplay video
+const AGENCY_CAPTION_FADEIN       = 14;   // 0.47s
+const AGENCY_CAPTION_HOLD         = 70;   // 2.33s — caption visible
+const AGENCY_CAPTION_FADEOUT      = 22;   // 0.73s
+
 const D = {
   // Phases overlap (crack starts mid-dolly) so total ends at
   // TITLE_START_FRAME + title hold, not sum-of-phases.
-  s00_opener: TITLE_START_FRAME + OPENER_TITLE_FRAMES,
-  s05_caption1:     90,  // 0:08.5 — "Bond with your agents."
-  s06_vignette:    120,  // 0:11.5 — 4 quick gameplay cuts
-  s07_recap:        90,  // 0:15.5 — recap card slides in
-  s08_warmBeats:   180,  // 0:18.5 — three named moments
-  s09_tierUp:       60,  // 0:24.5 — tier indicator advances
-  s10_drift:        90,  // 0:26.5 — palette glitch + caption shift
-  s11_loop:        150,  // 0:29.5 — same shot, three characters
-  s12_corruptRecap:120, // 0:34.5 — corrupted recap card
-  s13_strangeRoom:  90,  // 0:38.5 — Tier-N strange floor
-  s14_heldFace:     45,  // 0:41.5 — held face + single-frame insert
-  s15_black:        60,  // 0:43.0 — black
-  s16_titleReturn:  90,  // 0:45.0 — title card with taglines
-  s17_cta:          60,  // 0:48.0 — wishlist on Steam
+  s00_opener:         TITLE_START_FRAME + OPENER_TITLE_FRAMES,
+
+  // ── Six narrative beats added after the gameplay reveal ─────────
+  // Compressed so s07 starts at frame 1440 (s00 531 + s01..s06 909).
+  s01_agencyGameplay: 191,  // 6.37s
+  s02_surfaceLoop:    144,  // 4.8s — "Shifts. Stations. Quotas."
+  s03_conversations:  128,  // 4.27s — "Talk to them. They'll talk back."
+  s04_emergence:      144,  // 4.8s — split captions
+  s05_bondLoop:       222,  // 7.4s — "Deeper bonds. Deeper rooms. Deeper truths."
+  s06_tierUp:         80,   // 2.67s — silent FOSH/Castles tier-up
+  s07_puncture:       180,  // 6s — "Make them remember."
+
+  // Closer
+  s15_black:           60,  // 2s — black
+  s16_titleReturn:     90,  // 3s — title card with taglines
+  s17_cta:             60,  // 2s — wishlist on Steam
 };
 
 export const THE_AGENCY_TOTAL_FRAMES = Object.values(D).reduce((a, b) => a + b, 0);
@@ -382,6 +396,10 @@ const SLIDE_FRAG = /* glsl */ `
   uniform float uReveal;     // 0..1 over the burst window
   uniform float uTime;
   uniform vec2  uResolution;
+  // uBoost (0..1) ramps the static into a full-bleed transition:
+  // pushes noise + scanline amplitudes up and forces alpha to 1.0.
+  // Used at the end of Scene00 to wipe into the next scene.
+  uniform float uBoost;
 
   float hash21(vec2 p) {
     p = fract(p * vec2(123.34, 456.21));
@@ -392,7 +410,7 @@ const SLIDE_FRAG = /* glsl */ `
   void main() {
     vec2 uv = vUv;
 
-    // Static burst — reduced amplitude per "lessen the effect" note.
+    // Static burst — reduced amplitude for the title-appearance moment.
     float burst = exp(-pow(uReveal * 6.0, 1.4));
     float n = hash21(uv * uResolution + uTime * 60.0);
 
@@ -402,18 +420,24 @@ const SLIDE_FRAG = /* glsl */ `
     vec2 d = uv - 0.5;
     float vig = 1.0 - smoothstep(0.25, 0.85, length(d) * 1.4);
 
-    // Tear bands lessened — quieter overall ambience.
     float band = step(0.996, fract(uv.y * 28.0 + uTime * 6.0)) * burst * 0.18;
 
+    // Boost-aware noise amplitude: gentle for title burst, white-noise
+    // wash for the transition burst.
+    float noiseAmp = mix(0.18, 1.0, uBoost);
+
     vec3 col = vec3(0.0);
-    col += vec3(1.0, 0.55, 0.18) * n * burst * 0.18;
+    col += vec3(1.0, 0.55, 0.18) * n * burst * noiseAmp;
     col += vec3(1.0, 0.55, 0.18) * scan * scanA;
     col += vec3(1.0) * band;
+    // During boost: blend the noise toward grayscale so the transition
+    // reads as "TV static" rather than colored fizz.
+    col = mix(col, vec3(n), uBoost * burst * 0.85);
     col += vec3(0.08, 0.05, 0.03) * vig * (1.0 - burst * 0.5) * (1.0 - uReveal * 0.2);
 
-    // Lower alpha so the backdrop sits behind the title without
-    // competing with it.
-    float a = burst * 0.45 + (1.0 - burst) * 0.18 * (1.0 - uReveal);
+    // Alpha — subtle for title, full-coverage for transition burst.
+    float baseA = burst * 0.45 + (1.0 - burst) * 0.18 * (1.0 - uReveal);
+    float a = mix(baseA, burst, uBoost);
     gl_FragColor = vec4(col, a);
   }
 `;
@@ -426,7 +450,7 @@ const SLIDE_VERT = /* glsl */ `
   }
 `;
 
-const TitleBackdropShader: React.FC<{ reveal: number }> = ({ reveal }) => {
+const TitleBackdropShader: React.FC<{ reveal: number; boost?: number }> = ({ reveal, boost = 0 }) => {
   const frame = useCurrentFrame();
   const { fps, width: compW, height: compH } = useVideoConfig();
 
@@ -441,12 +465,14 @@ const TitleBackdropShader: React.FC<{ reveal: number }> = ({ reveal }) => {
         uReveal: { value: 0 },
         uTime: { value: 0 },
         uResolution: { value: new THREE.Vector2(compW, compH) },
+        uBoost: { value: 0 },
       },
     });
   }, [compW, compH]);
 
   material.uniforms.uReveal.value = reveal;
   material.uniforms.uTime.value = frame / fps;
+  material.uniforms.uBoost.value = boost;
 
   // Fullscreen quad in clip space (vertex shader bypasses camera).
   return (
@@ -496,18 +522,59 @@ const Scene00_EdiOpener: React.FC = () => {
     extrapolateRight: 'clamp',
   });
 
-  // Backdrop-shader reveal envelope: 0 before title, burst at title
-  // start, decays to a calm scanline veil during the hold.
+  // Scene end = title hold end, which is also when the static-shader
+  // transition wipes out to the next scene.
+  const sceneEnd = EDI_VIDEO_FRAMES + OPENER_TITLE_FRAMES; // = 480 + 55 = 535
+
+  // Backdrop-shader reveal envelope: 0 before title (burst), decays to
+  // a calm scanline veil during the hold, then drops back toward 0 in
+  // the last few frames so the static burst comes roaring back for
+  // the transition out.
   const slideReveal = interpolate(
     frame,
-    [titleStart - 4, titleStart + 4, titleStart + 90],
-    [0, 0.0, 1.0],
+    [titleStart - 4, titleStart + 4, titleStart + 40, sceneEnd - OPENER_TRANSITION_FRAMES, sceneEnd],
+    [0, 0.0, 1.0, 1.0, 0.0],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+  );
+  // uBoost ramps 0 → 1 over the last OPENER_TRANSITION_FRAMES so the
+  // shader switches from "subtle title veil" to "full-screen static
+  // wipe" for the transition into the next scene.
+  const slideBoost = interpolate(
+    frame,
+    [sceneEnd - OPENER_TRANSITION_FRAMES, sceneEnd],
+    [0, 1],
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
   );
   const slideActive = frame >= titleStart - 4;
 
   return (
     <AbsoluteFill style={{ backgroundColor: SCLAB.ink['100'] }}>
+      {/* Edi's "... Are you awake?" line — fires when the dialog
+          appears on the captured video. The tutorial runtime shows
+          the dialog ~600ms after the play click, with a 150ms pre-
+          roll baked into the trim. 0.75s × 30fps ≈ frame 22. */}
+      <Sequence from={22} durationInFrames={32}>
+        <Audio src={staticFile('trailer/edi-awake.flac')} />
+      </Sequence>
+
+      {/* Edi's follow-up shift line at frame 165 (5.5s).
+          Clip is 3.84s ≈ 116 frames. */}
+      <Sequence from={165} durationInFrames={120}>
+        <Audio src={staticFile('trailer/edi-shift.flac')} />
+      </Sequence>
+
+      {/* "Here are the candidates for today. Choose one." at
+          frame 255 (8.5s). Clip is 3.83s ≈ 115 frames. */}
+      <Sequence from={255} durationInFrames={120}>
+        <Audio src={staticFile('trailer/edi-candidates.flac')} />
+      </Sequence>
+
+      {/* "Interesting choice. Let's see how they last at The Agency."
+          at frame 385 (12.83s). Clip is 3.88s ≈ 117 frames. */}
+      <Sequence from={385} durationInFrames={122}>
+        <Audio src={staticFile('trailer/edi-agency.flac')} />
+      </Sequence>
+
       {/* Hidden video element drives preview-mode VideoTexture */}
       {!env.isRendering && (
         <Html5Video
@@ -531,7 +598,7 @@ const Scene00_EdiOpener: React.FC = () => {
         <directionalLight position={[-600, -300, 400]} intensity={0.35} color={'#ffd6a8'} />
 
         <PhoneMesh texture={texture} />
-        {slideActive && <TitleBackdropShader reveal={slideReveal} />}
+        {slideActive && <TitleBackdropShader reveal={slideReveal} boost={slideBoost} />}
       </ThreeCanvas>
 
       {/* SCLAB-styled title — Instrument Serif, signal-orange eyebrow */}
@@ -601,251 +668,424 @@ const Scene00_EdiOpener: React.FC = () => {
 };
 
 // ============================================================================
-// SCENE 05 — Held caption: "Bond with your agents."
+// SCENE 01 — Agency gameplay: "unravel the machinations of The Agency"
+//
+// Two-phase scene:
+//   Phase A (caption only): SCLAB-styled typography card sits over a
+//     dark backdrop. No video yet — viewer reads cleanly.
+//   Phase B (gameplay video): caption fades out, agency-gameplay.mp4
+//     plays full-bleed. Agents at stations, room-to-room camera pan,
+//     resource collection.
 // ============================================================================
-const Scene05_Caption1: React.FC = () => {
+const AGENCY_GAMEPLAY_SRC = staticFile('trailer/agency-gameplay.mp4');
+
+const Scene01_AgencyGameplay: React.FC = () => {
   const frame = useCurrentFrame();
-  const opacity = fadeInOut(frame, D.s05_caption1, 10, 12);
-  const charDrift = interpolate(frame, [0, D.s05_caption1], [0, -4]);
+
+  // Caption envelope: fade-in → hold → fade-out, all over the playing
+  // video. Total caption window = fadeIn + hold + fadeOut frames.
+  const c1 = AGENCY_CAPTION_FADEIN;
+  const c2 = c1 + AGENCY_CAPTION_HOLD;
+  const c3 = c2 + AGENCY_CAPTION_FADEOUT;
+  const captionOpacity = interpolate(frame, [0, c1, c2, c3], [0, 1, 1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  // Slight scale-in so the caption arrives with motion, not statically
+  const captionScale = interpolate(frame, [0, c1], [0.96, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  // Darkening scrim under the caption so the typography reads cleanly
+  // over the busy gameplay frame. Tracks the caption opacity so the
+  // scrim disappears as soon as the type does.
+  const scrimOpacity = captionOpacity * 0.62;
+
+  // Small fade at the end of the video so the next scene transitions
+  // cleanly rather than hard-cutting on a moving frame.
+  const videoOpacity = interpolate(
+    frame,
+    [AGENCY_VIDEO_FRAMES - 16, AGENCY_VIDEO_FRAMES],
+    [1, 0],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+  );
+
   return (
-    <AbsoluteFill style={{ backgroundColor: COLOR.bg, alignItems: 'center', justifyContent: 'center', opacity }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 64 }}>
-        {/* held still glyph */}
-        <div style={{ position: 'relative', width: 80, height: 80 }}>
-          <div style={{ position: 'absolute', inset: 0, border: `1px solid ${COLOR.paperDim}` }} />
+    <AbsoluteFill style={{ backgroundColor: SCLAB.ink['100'] }}>
+      {/* Gameplay video — plays from frame 0, full bleed. */}
+      <AbsoluteFill style={{ opacity: videoOpacity }}>
+        <OffthreadVideo
+          src={AGENCY_GAMEPLAY_SRC}
+          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        />
+      </AbsoluteFill>
+
+      {/* Scrim — darkens the video while the caption is up */}
+      {scrimOpacity > 0 && (
+        <AbsoluteFill
+          style={{
+            background: `radial-gradient(ellipse at center, rgba(0,0,0,${scrimOpacity}) 0%, rgba(0,0,0,${scrimOpacity * 0.55}) 70%, rgba(0,0,0,0) 100%)`,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+
+      {/* Caption overlay — typography on top of the dimmed video */}
+      {captionOpacity > 0 && (
+        <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
           <div
             style={{
-              position: 'absolute',
-              left: '50%', top: '50%',
-              width: 10, height: 10,
-              background: COLOR.paper,
-              transform: `translate(-50%, calc(-50% + ${charDrift}px))`,
+              opacity: captionOpacity,
+              transform: `scale(${captionScale})`,
+              textAlign: 'center',
+              maxWidth: '78%',
+              textShadow: '0 4px 32px rgba(0,0,0,0.8)',
             }}
-          />
-        </div>
-        <div
-          style={{
-            color: COLOR.paper,
-            fontFamily: SERIF,
-            fontSize: 48,
-            letterSpacing: '0.04em',
-            fontStyle: 'italic',
-          }}
-        >
-          Bond with your agents.
-        </div>
-      </div>
+          >
+            <div
+              style={{
+                fontFamily: SCLAB_FONTS.mono,
+                fontSize: '1.1rem',
+                letterSpacing: '0.28em',
+                textTransform: 'uppercase',
+                color: SCLAB.signal['500'],
+                marginBottom: 38,
+              }}
+            >
+              [ TRANSMISSION 002 ]
+            </div>
+            <h1
+              style={{
+                fontFamily: SCLAB_FONTS.serif,
+                fontStyle: 'italic',
+                fontSize: '6.5rem',
+                lineHeight: 1.0,
+                color: SCLAB.bone['900'],
+                letterSpacing: '-0.01em',
+                fontWeight: 400,
+                margin: 0,
+              }}
+            >
+              Unravel the machinations
+              <br />
+              <span style={{ fontStyle: 'normal' }}>of The Agency.</span>
+            </h1>
+          </div>
+        </AbsoluteFill>
+      )}
     </AbsoluteFill>
   );
 };
 
 // ============================================================================
-// SCENE 06 — Vignette montage (4 rapid cuts: build / palette / approve / schedule)
+// ── Six narrative beats — typography drafts for v0 ────────────────────────
+// These scenes use motion-graphics placeholders ("gameplay placeholder"
+// labels) where real gameplay capture will swap in. The captions are
+// the load-bearing element while we lock the script. Replace each
+// placeholder block with a captured clip as the gameplay arrives.
 // ============================================================================
-const VignetteFrame: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <AbsoluteFill style={{ backgroundColor: COLOR.bg, alignItems: 'center', justifyContent: 'center' }}>
-    <div style={{ position: 'relative', width: 560, height: 340, border: `1px solid ${COLOR.paperDim}` }}>
-      {children}
-      <div
-        style={{
-          position: 'absolute', left: 0, bottom: -28,
-          fontFamily: MONO, fontSize: 13,
-          color: COLOR.paperDim, letterSpacing: '0.2em', textTransform: 'uppercase',
-        }}
-      >
+
+// Shared typography helpers — keep the SCLAB design system consistent
+// across the six new beats.
+const Eyebrow: React.FC<{ children: React.ReactNode; opacity?: number }> = ({ children, opacity = 1 }) => (
+  <div
+    style={{
+      fontFamily: SCLAB_FONTS.mono,
+      fontSize: '1.05rem',
+      letterSpacing: '0.3em',
+      textTransform: 'uppercase',
+      color: SCLAB.signal['500'],
+      opacity,
+    }}
+  >
+    {children}
+  </div>
+);
+
+const HeadlineSerif: React.FC<{
+  children: React.ReactNode;
+  size?: string;
+  italic?: boolean;
+  opacity?: number;
+  scale?: number;
+}> = ({ children, size = '6rem', italic = false, opacity = 1, scale = 1 }) => (
+  <h2
+    style={{
+      fontFamily: SCLAB_FONTS.serif,
+      fontStyle: italic ? 'italic' : 'normal',
+      fontWeight: 400,
+      fontSize: size,
+      lineHeight: 1.0,
+      letterSpacing: '-0.01em',
+      color: SCLAB.bone['900'],
+      margin: 0,
+      opacity,
+      transform: `scale(${scale})`,
+      textShadow: '0 4px 32px rgba(0,0,0,0.7)',
+    }}
+  >
+    {children}
+  </h2>
+);
+
+const FootagePlaceholder: React.FC<{
+  label: string;
+  hint?: string;
+}> = ({ label, hint }) => (
+  <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', backgroundColor: SCLAB.ink['200'] }}>
+    <div
+      style={{
+        border: `1px dashed ${SCLAB.bone['300']}`,
+        padding: '24px 36px',
+        textAlign: 'center',
+      }}
+    >
+      <div style={{
+        fontFamily: SCLAB_FONTS.mono,
+        fontSize: '0.85rem',
+        letterSpacing: '0.32em',
+        color: SCLAB.bone['500'],
+        marginBottom: 6,
+      }}>
+        FOOTAGE
+      </div>
+      <div style={{
+        fontFamily: SCLAB_FONTS.mono,
+        fontSize: '1.1rem',
+        letterSpacing: '0.16em',
+        color: SCLAB.bone['900'],
+      }}>
         {label}
       </div>
+      {hint && (
+        <div style={{
+          fontFamily: SCLAB_FONTS.mono,
+          fontSize: '0.75rem',
+          color: SCLAB.bone['500'],
+          marginTop: 10,
+          letterSpacing: '0.1em',
+        }}>
+          {hint}
+        </div>
+      )}
     </div>
   </AbsoluteFill>
 );
 
-const Scene06_Vignettes: React.FC = () => {
-  const each = Math.floor(D.s06_vignette / 4);
+// ============================================================================
+// SCENE 02 — Surface loop: "Shifts. Stations. Quotas."
+// Plant the genre. Show the production-line gameplay so FOSH/Castles
+// viewers recognize the shape.
+// ============================================================================
+const Scene02_SurfaceLoop: React.FC = () => {
+  const frame = useCurrentFrame();
+
+  // Three-word triplet — each word lands on its own ~32-frame beat.
+  // Tightened for the 144-frame s02_surfaceLoop window.
+  const wordTimings = [
+    [6, 22],   // "Shifts."
+    [38, 54],  // "Stations."
+    [70, 86],  // "Quotas."
+  ];
+
+  const overall = fadeInOut(frame, D.s02_surfaceLoop, 8, 14);
+  const scrim = interpolate(frame, [10, 30, D.s02_surfaceLoop - 30, D.s02_surfaceLoop - 6], [0, 0.6, 0.55, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
   return (
-    <>
-      <Sequence from={0} durationInFrames={each}>
-        <VignetteFrame label="build">
-          {/* placing a room */}
-          <RoomPlacing />
-        </VignetteFrame>
-      </Sequence>
-      <Sequence from={each} durationInFrames={each}>
-        <VignetteFrame label="palette">
-          <PaletteSwatch />
-        </VignetteFrame>
-      </Sequence>
-      <Sequence from={each * 2} durationInFrames={each}>
-        <VignetteFrame label="approve / decline">
-          <ApproveCard />
-        </VignetteFrame>
-      </Sequence>
-      <Sequence from={each * 3} durationInFrames={D.s06_vignette - each * 3}>
-        <VignetteFrame label="schedule">
-          <ScheduleSlots />
-        </VignetteFrame>
-      </Sequence>
-    </>
+    <AbsoluteFill style={{ backgroundColor: SCLAB.ink['100'] }}>
+      <FootagePlaceholder label="AGENTS AT STATIONS · RESOURCES TICKING" hint="capture: 3 rooms producing in parallel" />
+      <AbsoluteFill style={{ backgroundColor: `rgba(0,0,0,${scrim})`, pointerEvents: 'none' }} />
+      <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', opacity: overall }}>
+        <div style={{ display: 'flex', gap: 48 }}>
+          {['Shifts.', 'Stations.', 'Quotas.'].map((word, i) => {
+            const [start, end] = wordTimings[i];
+            const wOpacity = interpolate(frame, [start, end], [0, 1], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            });
+            const wY = interpolate(wOpacity, [0, 1], [16, 0]);
+            return (
+              <div key={word} style={{ opacity: wOpacity, transform: `translateY(${wY}px)` }}>
+                <HeadlineSerif size="5.5rem">{word}</HeadlineSerif>
+              </div>
+            );
+          })}
+        </div>
+      </AbsoluteFill>
+    </AbsoluteFill>
   );
 };
 
-const RoomPlacing: React.FC = () => {
-  const f = useCurrentFrame();
-  const x = interpolate(f, [0, 25], [0, 200], { extrapolateRight: 'clamp' });
+// ============================================================================
+// SCENE 03 — Conversations: "Talk to them. They'll talk back."
+// Cut from system-shots to a face. The shift in framing is the message.
+// ============================================================================
+const Scene03_Conversations: React.FC = () => {
+  const frame = useCurrentFrame();
+  const captionOpacity = interpolate(frame, [20, 40, D.s03_conversations - 30, D.s03_conversations - 8], [0, 1, 1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const scrim = captionOpacity * 0.6;
+
   return (
-    <>
-      {[0, 1, 2].map((i) => (
-        <div key={i} style={{
-          position: 'absolute', left: 60 + i * 140, top: 200, width: 120, height: 80,
-          border: `1px solid ${COLOR.paperDim}`,
-        }} />
-      ))}
-      <div style={{
-        position: 'absolute', left: 60 + x, top: 80, width: 120, height: 80,
-        border: `1px solid ${COLOR.accent}`,
-        background: `${COLOR.accent}1a`,
+    <AbsoluteFill style={{ backgroundColor: SCLAB.ink['100'] }}>
+      <FootagePlaceholder label="AGENT PROFILE OPENS · DIALOG EXCHANGE" hint="capture: tap-to-focus + chat panel" />
+      <AbsoluteFill style={{
+        background: `radial-gradient(ellipse at 50% 60%, rgba(0,0,0,${scrim}) 0%, rgba(0,0,0,${scrim * 0.4}) 70%, rgba(0,0,0,0) 100%)`,
+        pointerEvents: 'none',
       }} />
-    </>
-  );
-};
-
-const PaletteSwatch: React.FC = () => {
-  const colors = ['#6ec1c4', '#c4a26e', '#a26ec4', '#6e8ac4'];
-  const f = useCurrentFrame();
-  const idx = Math.min(colors.length - 1, Math.floor(f / 8));
-  return (
-    <div style={{ position: 'absolute', inset: 40, display: 'flex', gap: 12 }}>
-      {colors.map((c, i) => (
-        <div key={c} style={{
-          flex: 1,
-          background: c,
-          opacity: i <= idx ? 1 : 0.15,
-          transform: i === idx ? 'translateY(-4px)' : 'translateY(0)',
-        }} />
-      ))}
-    </div>
-  );
-};
-
-const ApproveCard: React.FC = () => {
-  const f = useCurrentFrame();
-  const slideIn = interpolate(f, [0, 14], [40, 0], { extrapolateRight: 'clamp' });
-  return (
-    <div style={{
-      position: 'absolute', left: 80, right: 80, top: 80,
-      transform: `translateY(${slideIn}px)`,
-      padding: 24, border: `1px solid ${COLOR.paper}`, background: COLOR.bg,
-    }}>
-      <div style={{ fontFamily: SERIF, fontSize: 22, color: COLOR.paper, marginBottom: 14 }}>
-        Mara is asking for the afternoon off.
-      </div>
-      <div style={{ display: 'flex', gap: 14, fontFamily: MONO, fontSize: 13, letterSpacing: '0.2em' }}>
-        <div style={{ padding: '6px 14px', border: `1px solid ${COLOR.accent}`, color: COLOR.accent }}>APPROVE</div>
-        <div style={{ padding: '6px 14px', border: `1px solid ${COLOR.paperDim}`, color: COLOR.paperDim }}>DECLINE</div>
-      </div>
-    </div>
-  );
-};
-
-const ScheduleSlots: React.FC = () => (
-  <div style={{ position: 'absolute', inset: 40, display: 'flex', flexDirection: 'column', gap: 10 }}>
-    {['MORNING', 'MIDDAY', 'AFTERNOON', 'NIGHT'].map((s, i) => (
-      <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <div style={{ fontFamily: MONO, fontSize: 12, color: COLOR.paperDim, letterSpacing: '0.2em', width: 110 }}>{s}</div>
-        <div style={{ flex: 1, height: 16, background: i < 3 ? `${COLOR.accent}55` : 'transparent', border: `1px solid ${COLOR.paperDim}` }} />
-      </div>
-    ))}
-  </div>
-);
-
-// ============================================================================
-// SCENE 07 — Recap card slides in, holds on one killer line
-// ============================================================================
-const Scene07_Recap: React.FC = () => {
-  const frame = useCurrentFrame();
-  const slide = interpolate(frame, [0, 18], [60, 0], { extrapolateRight: 'clamp' });
-  const opacity = fadeInOut(frame, D.s07_recap, 10, 10);
-  return (
-    <AbsoluteFill style={{ backgroundColor: COLOR.bg, alignItems: 'center', justifyContent: 'center', opacity }}>
-      <div style={{
-        width: 880, padding: '48px 56px', border: `1px solid ${COLOR.paper}`, background: COLOR.bg,
-        transform: `translateY(${slide}px)`,
-      }}>
-        <div style={{ fontFamily: MONO, fontSize: 12, color: COLOR.paperDim, letterSpacing: '0.3em', marginBottom: 18 }}>
-          DAY 03 — RECAP
+      <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', opacity: captionOpacity }}>
+        <div style={{ textAlign: 'center', maxWidth: '72%' }}>
+          <Eyebrow>[ TRANSMISSION 003 ]</Eyebrow>
+          <div style={{ height: 36 }} />
+          <HeadlineSerif size="5.5rem" italic>
+            Talk to them.
+            <br />
+            <span style={{ fontStyle: 'normal' }}>They'll talk back.</span>
+          </HeadlineSerif>
         </div>
-        <div style={{ fontFamily: SERIF, fontSize: 32, color: COLOR.paper, lineHeight: 1.4 }}>
-          She liked how the apartment sounded before anyone was up.
-        </div>
-      </div>
+      </AbsoluteFill>
     </AbsoluteFill>
   );
 };
 
 // ============================================================================
-// SCENE 08 — Three warm beats (named characters, specific moments)
+// SCENE 04 — Emergence (split): "Every agent is alive." → "Every story is different."
+// Lean into the LLM angle, then echo the existing tagline.
 // ============================================================================
-const Scene08_WarmBeats: React.FC = () => {
-  const each = Math.floor(D.s08_warmBeats / 3);
-  return (
-    <>
-      <Sequence from={0} durationInFrames={each}>
-        <NamedBeat name="MARA" line="claimed the window seat by the kettle." />
-      </Sequence>
-      <Sequence from={each} durationInFrames={each}>
-        <NamedBeat name="TOMEK" line="said her sketches were getting bolder." />
-      </Sequence>
-      <Sequence from={each * 2} durationInFrames={D.s08_warmBeats - each * 2}>
-        <NamedBeat name="BO" line="insists it's not cold. It's cold." />
-      </Sequence>
-    </>
-  );
-};
-
-const NamedBeat: React.FC<{ name: string; line: string }> = ({ name, line }) => {
+const Scene04_Emergence: React.FC = () => {
   const frame = useCurrentFrame();
-  const opacity = fadeInOut(frame, 60, 8, 8);
+
+  // Two phases:
+  //   first half — "Every agent is alive."  (named agents flicker behind)
+  //   second half — "Every story is different."  (recap-line flicker)
+  const half = Math.floor(D.s04_emergence / 2);
+
+  const cap1Opacity = interpolate(frame, [10, 28, half - 14, half - 2], [0, 1, 1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const cap2Opacity = interpolate(frame, [half + 6, half + 22, D.s04_emergence - 16, D.s04_emergence - 4], [0, 1, 1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  const scrim = Math.max(cap1Opacity, cap2Opacity) * 0.55;
+
   return (
-    <AbsoluteFill style={{ backgroundColor: COLOR.bg, alignItems: 'center', justifyContent: 'center', opacity }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32, maxWidth: 900 }}>
-        <div style={{
-          width: 80, height: 80, border: `1px solid ${COLOR.paperDim}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <div style={{ width: 10, height: 10, background: COLOR.paper }} />
-        </div>
-        <div style={{ fontFamily: MONO, fontSize: 13, color: COLOR.accent, letterSpacing: '0.4em' }}>{name}</div>
-        <div style={{ fontFamily: SERIF, fontSize: 36, color: COLOR.paper, textAlign: 'center', lineHeight: 1.35 }}>
-          {line}
-        </div>
-      </div>
+    <AbsoluteFill style={{ backgroundColor: SCLAB.ink['100'] }}>
+      <FootagePlaceholder label="VIGNETTE CUTS · NAMED AGENTS" hint="capture: 3 different agents, 3 different lines" />
+      <AbsoluteFill style={{ backgroundColor: `rgba(0,0,0,${scrim})`, pointerEvents: 'none' }} />
+
+      {/* Caption A */}
+      {cap1Opacity > 0 && (
+        <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+          <div style={{ textAlign: 'center', opacity: cap1Opacity }}>
+            <HeadlineSerif size="6.5rem">Every agent is alive.</HeadlineSerif>
+          </div>
+        </AbsoluteFill>
+      )}
+
+      {/* Caption B */}
+      {cap2Opacity > 0 && (
+        <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+          <div style={{ textAlign: 'center', opacity: cap2Opacity }}>
+            <HeadlineSerif size="6.5rem" italic>Every story is different.</HeadlineSerif>
+          </div>
+        </AbsoluteFill>
+      )}
     </AbsoluteFill>
   );
 };
 
 // ============================================================================
-// SCENE 09 — Tier-up (new floor unlocks below)
+// SCENE 05 — Bond loop (THE PITCH): "Deeper bonds. Deeper rooms. Deeper truths."
+// The triplet mirrors S02's "Shifts. Stations. Quotas." — same rhythm,
+// trade for trade. Longest beat; load-bearing. Each line drops vertically
+// to imply descent into lower floors.
 // ============================================================================
-const Scene09_TierUp: React.FC = () => {
+const Scene05_BondLoop: React.FC = () => {
   const frame = useCurrentFrame();
-  const fillT = interpolate(frame, [0, 30], [0, 1], { extrapolateRight: 'clamp' });
-  const newRow = interpolate(frame, [30, 50], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
-  const opacity = fadeInOut(frame, D.s09_tierUp, 6, 6);
+  const lines = ['Deeper bonds.', 'Deeper rooms.', 'Deeper truths.'];
+
+  // Stagger: each line arrives 50f after the previous. Tightened for
+  // the 222-frame s05_bondLoop window so the last line still has room
+  // to hold before the scene fades out.
+  const lineTimings = [
+    { start: 10, in: 16 },
+    { start: 60, in: 16 },
+    { start: 110, in: 16 },
+  ];
+
+  const overall = fadeInOut(frame, D.s05_bondLoop, 6, 24);
+  const scrim = interpolate(frame, [10, 50, D.s05_bondLoop - 30, D.s05_bondLoop - 6], [0, 0.6, 0.6, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
   return (
-    <AbsoluteFill style={{ backgroundColor: COLOR.bg, alignItems: 'center', justifyContent: 'center', opacity }}>
+    <AbsoluteFill style={{ backgroundColor: SCLAB.ink['100'] }}>
+      <FootagePlaceholder label="BOND-METER TICKS · ROOM UNLOCKS · CAMERA PANS DOWN" hint="capture: causal chain bond→reveal→build→descent" />
+      <AbsoluteFill style={{ backgroundColor: `rgba(0,0,0,${scrim})`, pointerEvents: 'none' }} />
+
+      <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', opacity: overall }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+          {lines.map((line, i) => {
+            const t = lineTimings[i];
+            const lOpacity = interpolate(frame, [t.start, t.start + t.in], [0, 1], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            });
+            const lY = interpolate(lOpacity, [0, 1], [28, 0]);
+            const isLast = i === lines.length - 1;
+            return (
+              <div key={line} style={{ opacity: lOpacity, transform: `translateY(${lY}px)` }}>
+                <HeadlineSerif size={isLast ? '7rem' : '6rem'} italic={isLast}>
+                  {line}
+                </HeadlineSerif>
+              </div>
+            );
+          })}
+        </div>
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
+// ============================================================================
+// SCENE 06 — Silent tier-up (Castles/FOSH nod for genre viewers)
+// Reuses the existing tier-up motion graphics. Linger long enough that
+// the FOSH/Castles audience recognizes the shape, then cuts.
+// ============================================================================
+const Scene06_TierUpSilent: React.FC = () => {
+  const frame = useCurrentFrame();
+  const fillT = interpolate(frame, [10, 70], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const newRow = interpolate(frame, [70, 110], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const overall = fadeInOut(frame, D.s06_tierUp, 10, 14);
+
+  return (
+    <AbsoluteFill style={{ backgroundColor: SCLAB.ink['100'], alignItems: 'center', justifyContent: 'center', opacity: overall }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 36 }}>
-        <div style={{ fontFamily: MONO, fontSize: 13, color: COLOR.paperDim, letterSpacing: '0.4em' }}>FACILITY TIER 02 → 03</div>
-        <div style={{ width: 360, height: 4, background: `${COLOR.paperDim}` }}>
-          <div style={{ width: `${fillT * 100}%`, height: '100%', background: COLOR.accent }} />
+        <Eyebrow opacity={overall}>FACILITY TIER 02 → 03</Eyebrow>
+        <div style={{ width: 420, height: 4, background: SCLAB.bone['300'] }}>
+          <div style={{ width: `${fillT * 100}%`, height: '100%', background: SCLAB.signal['500'] }} />
         </div>
-        <div style={{ width: 480, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ width: 560, display: 'flex', flexDirection: 'column', gap: 5 }}>
           {[0, 1, 2].map((r) => (
-            <div key={r} style={{ height: 36, border: `1px solid ${COLOR.paperDim}` }} />
+            <div key={r} style={{ height: 42, border: `1px solid ${SCLAB.bone['300']}` }} />
           ))}
           <div style={{
-            height: 36, border: `1px solid ${COLOR.accent}`,
+            height: 42,
+            border: `1px solid ${SCLAB.signal['500']}`,
+            background: `${SCLAB.signal['500']}1f`,
             opacity: newRow,
-            transform: `translateY(${(1 - newRow) * -8}px)`,
-            background: `${COLOR.accent}1a`,
+            transform: `translateY(${(1 - newRow) * -10}px)`,
           }} />
         </div>
       </div>
@@ -854,189 +1094,35 @@ const Scene09_TierUp: React.FC = () => {
 };
 
 // ============================================================================
-// SCENE 10 — Drift: palette glitches, caption now reads ominous
+// SCENE 07 — Puncture: "Make them remember."
+// Sharp tonal turn. Held face, signal-orange punch on the line, cut to
+// black hand-off into the title return.
 // ============================================================================
-const Scene10_Drift: React.FC = () => {
+const Scene07_Puncture: React.FC = () => {
   const frame = useCurrentFrame();
-  const opacity = fadeInOut(frame, D.s10_drift, 8, 10);
-  // single-frame palette corruption every ~20 frames
-  const glitch = frame % 20 < 1 ? 1 : 0;
-  const shift = glitch ? 6 : 0;
+  const captionOpacity = interpolate(frame, [40, 60, D.s07_puncture - 20, D.s07_puncture - 4], [0, 1, 1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const scrim = interpolate(frame, [20, 60, D.s07_puncture - 20, D.s07_puncture - 4], [0, 0.7, 0.7, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
   return (
-    <AbsoluteFill style={{ backgroundColor: COLOR.bg, alignItems: 'center', justifyContent: 'center', opacity }}>
-      <div style={{ position: 'relative' }}>
-        <div
-          style={{
-            fontFamily: SERIF, fontSize: 56, color: COLOR.paper, letterSpacing: '0.02em',
-            position: 'relative',
-            transform: `translateX(${shift}px)`,
-          }}
-        >
-          Every story is different.
+    <AbsoluteFill style={{ backgroundColor: SCLAB.ink['100'] }}>
+      <FootagePlaceholder
+        label="HELD FACE · AGENT GLANCES AT CAMERA"
+        hint="capture: one too-long shot of an agent looking back"
+      />
+      <AbsoluteFill style={{ backgroundColor: `rgba(0,0,0,${scrim})`, pointerEvents: 'none' }} />
+      <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', opacity: captionOpacity }}>
+        <div style={{ textAlign: 'center' }}>
+          <HeadlineSerif size="7.5rem">
+            Make them <span style={{ color: SCLAB.signal['500'] }}>remember</span>.
+          </HeadlineSerif>
         </div>
-        {glitch === 1 && (
-          <div
-            style={{
-              position: 'absolute', inset: 0,
-              fontFamily: SERIF, fontSize: 56, color: COLOR.warning, letterSpacing: '0.02em',
-              transform: 'translateX(-6px)', mixBlendMode: 'screen' as any,
-              opacity: 0.6,
-            }}
-          >
-            Every story is different.
-          </div>
-        )}
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-// ============================================================================
-// SCENE 11 — The loop: same shift-arrival walk, three different characters
-// ============================================================================
-const Scene11_Loop: React.FC = () => {
-  // three sub-sequences, each compressing in duration
-  const dur1 = 60;
-  const dur2 = 50;
-  const dur3 = 40;
-  return (
-    <>
-      <Sequence from={0} durationInFrames={dur1}>
-        <LoopTraversal accent={COLOR.accent} />
-      </Sequence>
-      <Sequence from={dur1} durationInFrames={dur2}>
-        <LoopTraversal accent={'#c4a26e'} />
-      </Sequence>
-      <Sequence from={dur1 + dur2} durationInFrames={dur3}>
-        <LoopTraversal accent={'#a26ec4'} />
-      </Sequence>
-    </>
-  );
-};
-
-const LoopTraversal: React.FC<{ accent: string }> = ({ accent }) => {
-  const frame = useCurrentFrame();
-  const { durationInFrames } = useVideoConfig();
-  const t = interpolate(frame, [0, durationInFrames], [0, 1]);
-  return (
-    <AbsoluteFill style={{ backgroundColor: COLOR.bg, alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ position: 'relative', width: 880, height: 200 }}>
-        {/* corridor */}
-        <div style={{ position: 'absolute', top: 100, left: 0, right: 0, height: 1, background: COLOR.paperDim }} />
-        {/* entrance */}
-        <div style={{ position: 'absolute', left: 0, top: 90, width: 16, height: 20, background: accent }} />
-        {/* dot */}
-        <div style={{
-          position: 'absolute', left: t * 820, top: 95, width: 10, height: 10, background: COLOR.paper,
-        }} />
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-// ============================================================================
-// SCENE 12 — Corrupted recap card
-// ============================================================================
-const Scene12_CorruptRecap: React.FC = () => {
-  const frame = useCurrentFrame();
-  const opacity = fadeInOut(frame, D.s12_corruptRecap, 8, 12);
-  const scrambleSeed = Math.floor(frame / 4);
-  const scrambled = scrambleText('She liked how the apartment sounded before anyone was up.', scrambleSeed, 0.4);
-  return (
-    <AbsoluteFill style={{ backgroundColor: COLOR.bg, alignItems: 'center', justifyContent: 'center', opacity }}>
-      <div style={{
-        width: 880, padding: '48px 56px', border: `1px solid ${COLOR.warning}`, background: COLOR.bg,
-      }}>
-        <div style={{ fontFamily: MONO, fontSize: 12, color: COLOR.warning, letterSpacing: '0.3em', marginBottom: 18 }}>
-          DAY {String(scrambleSeed % 99).padStart(2, '0')} — RECAP
-        </div>
-        <div style={{ fontFamily: SERIF, fontSize: 32, color: COLOR.paper, lineHeight: 1.4 }}>
-          {scrambled}
-        </div>
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-const scrambleText = (text: string, seed: number, rate: number): string => {
-  const glyphs = '█▓▒░◊◌○●◯◍';
-  return text
-    .split('')
-    .map((ch, i) => {
-      if (ch === ' ') return ch;
-      const r = random(`${seed}-${i}`);
-      if (r < rate) {
-        return glyphs[Math.floor(random(`${seed}-${i}-g`) * glyphs.length)];
-      }
-      return ch;
-    })
-    .join('');
-};
-
-// ============================================================================
-// SCENE 13 — Tier-N strange-floor room (geometry distorts)
-// ============================================================================
-const Scene13_StrangeRoom: React.FC = () => {
-  const frame = useCurrentFrame();
-  const opacity = fadeInOut(frame, D.s13_strangeRoom, 10, 10);
-  const skew = interpolate(frame, [0, D.s13_strangeRoom], [0, 4]);
-  return (
-    <AbsoluteFill style={{ backgroundColor: COLOR.bg, alignItems: 'center', justifyContent: 'center', opacity }}>
-      <div style={{
-        width: 720, height: 420, position: 'relative',
-        border: `1px solid ${COLOR.paperDim}`,
-        transform: `perspective(900px) rotateY(${skew}deg)`,
-      }}>
-        {/* unfamiliar interior — vertical lines, off rhythm */}
-        {Array.from({ length: 9 }).map((_, i) => (
-          <div key={i} style={{
-            position: 'absolute', top: 0, bottom: 0,
-            left: `${(i / 9) * 100 + Math.sin(i * 1.7) * 3}%`,
-            width: 1, background: COLOR.paperDim,
-          }} />
-        ))}
-        {/* the still figure */}
-        <div style={{
-          position: 'absolute', left: '50%', top: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 14, height: 14, background: COLOR.paper,
-        }} />
-        {/* blank nameplate */}
-        <div style={{
-          position: 'absolute', left: '50%', top: '62%',
-          transform: 'translateX(-50%)',
-          width: 140, height: 14,
-          border: `1px solid ${COLOR.paperDim}`,
-        }} />
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-// ============================================================================
-// SCENE 14 — Held face + single-frame insert
-// ============================================================================
-const Scene14_HeldFace: React.FC = () => {
-  const frame = useCurrentFrame();
-  const opacity = fadeInOut(frame, D.s14_heldFace, 4, 4);
-  // single-frame insert near the middle
-  const insert = frame === Math.floor(D.s14_heldFace * 0.55);
-  return (
-    <AbsoluteFill style={{ backgroundColor: COLOR.bg, alignItems: 'center', justifyContent: 'center', opacity }}>
-      {insert ? (
-        <div style={{
-          fontFamily: SERIF, fontSize: 140, color: COLOR.warning, letterSpacing: '0.08em',
-        }}>
-          INNIE
-        </div>
-      ) : (
-        <div style={{ position: 'relative', width: 160, height: 200 }}>
-          {/* face placeholder — two dots and a line */}
-          <div style={{ position: 'absolute', left: 40, top: 70, width: 10, height: 10, background: COLOR.paper }} />
-          <div style={{ position: 'absolute', right: 40, top: 70, width: 10, height: 10, background: COLOR.paper }} />
-          <div style={{ position: 'absolute', left: 50, right: 50, top: 130, height: 2, background: COLOR.paper }} />
-        </div>
-      )}
+      </AbsoluteFill>
     </AbsoluteFill>
   );
 };
@@ -1111,20 +1197,33 @@ export const TheAgencyTrailer: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: COLOR.bg }}>
-      {seq(D.s00_opener,        <Scene00_EdiOpener />,     's00')}
-      {seq(D.s05_caption1,      <Scene05_Caption1 />,      's05')}
-      {seq(D.s06_vignette,      <Scene06_Vignettes />,     's06')}
-      {seq(D.s07_recap,         <Scene07_Recap />,         's07')}
-      {seq(D.s08_warmBeats,     <Scene08_WarmBeats />,     's08')}
-      {seq(D.s09_tierUp,        <Scene09_TierUp />,        's09')}
-      {seq(D.s10_drift,         <Scene10_Drift />,         's10')}
-      {seq(D.s11_loop,          <Scene11_Loop />,          's11')}
-      {seq(D.s12_corruptRecap,  <Scene12_CorruptRecap />,  's12')}
-      {seq(D.s13_strangeRoom,   <Scene13_StrangeRoom />,   's13')}
-      {seq(D.s14_heldFace,      <Scene14_HeldFace />,      's14')}
-      {seq(D.s15_black,         <Scene15_Black />,         's15')}
-      {seq(D.s16_titleReturn,   <Scene16_TitleReturn />,   's16')}
-      {seq(D.s17_cta,           <Scene17_CTA />,           's17')}
+      {/* Background music — kicks in at frame 97 (3.23s). At frame
+          358 the track jumps forward 177 frames mid-stream, then
+          continues — same effect as if the song had played from
+          frame 97 with a silent passage 358→534 silenced, but
+          without the gap. */}
+      <Sequence from={97} durationInFrames={358 - 97}>
+        <Audio src={staticFile('trailer/bg.mp3')} volume={0.45} />
+      </Sequence>
+      <Sequence from={358}>
+        <Audio
+          src={staticFile('trailer/bg.mp3')}
+          startFrom={535 - 97}
+          volume={0.45}
+        />
+      </Sequence>
+
+      {seq(D.s00_opener,         <Scene00_EdiOpener />,         's00')}
+      {seq(D.s01_agencyGameplay, <Scene01_AgencyGameplay />,    's01')}
+      {seq(D.s02_surfaceLoop,    <Scene02_SurfaceLoop />,       's02')}
+      {seq(D.s03_conversations,  <Scene03_Conversations />,     's03')}
+      {seq(D.s04_emergence,      <Scene04_Emergence />,         's04')}
+      {seq(D.s05_bondLoop,       <Scene05_BondLoop />,          's05')}
+      {seq(D.s06_tierUp,         <Scene06_TierUpSilent />,      's06')}
+      {seq(D.s07_puncture,       <Scene07_Puncture />,          's07')}
+      {seq(D.s15_black,          <Scene15_Black />,             's15')}
+      {seq(D.s16_titleReturn,    <Scene16_TitleReturn />,       's16')}
+      {seq(D.s17_cta,            <Scene17_CTA />,               's17')}
     </AbsoluteFill>
   );
 };
