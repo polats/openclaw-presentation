@@ -49,8 +49,9 @@ const COLOR = {
 const EDI_VIDEO_FRAMES    = 480;  // 16.0s — full play of edi-intro.mp4
 const OPENER_DOLLY_FRAMES = 32;   // 1.07s — fast launch, quick settle
 const OPENER_CRACK_FRAMES = 50;   // 1.67s — glass break on the settled phone
-const OPENER_TITLE_FRAMES = 55;   // 1.83s — title reveal + hold + static-transition tail (S00 ends at frame 535)
-const OPENER_TRANSITION_FRAMES = 4; // last 4 frames of S00 are a full-bleed static-shader transition
+const OPENER_TITLE_FRAMES = 63;   // 2.1s — title reveal + hold + static-transition tail (S00 ends at frame 543)
+const OPENER_TRANSITION_FRAMES = 12; // last 12 frames of S00 slow-ramp into full static
+const S01_STATIC_FADEOUT_FRAMES = 14; // first 14 frames of S01 fade the static back out
 
 // "The Agency" line appears ~13.7s into the trimmed clip (frame 411 at
 // 30fps). Computed from timing.json:
@@ -81,14 +82,19 @@ const D = {
   s00_opener:         TITLE_START_FRAME + OPENER_TITLE_FRAMES,
 
   // ── Six narrative beats added after the gameplay reveal ─────────
-  // Compressed so s07 starts at frame 1440 (s00 531 + s01..s06 909).
-  s01_agencyGameplay: 191,  // 6.37s
-  s02_surfaceLoop:    144,  // 4.8s — "Shifts. Stations. Quotas."
-  s03_conversations:  128,  // 4.27s — "Talk to them. They'll talk back."
-  s04_emergence:      144,  // 4.8s — split captions
-  s05_bondLoop:       222,  // 7.4s — "Deeper bonds. Deeper rooms. Deeper truths."
-  s06_tierUp:         80,   // 2.67s — silent FOSH/Castles tier-up
-  s07_puncture:       180,  // 6s — "Make them remember."
+  // S07 (puncture) is anchored at frame 1433. When S01 grew by 86
+  // frames (316 → 402), s03..s06 had to shed the same 86 frames so
+  // the puncture beat doesn't drift.
+  // S01+S02 combined: one continuous gameplay video that first shows
+  // the "Unravel the machinations" dialog (Phase A), then swaps Edi
+  // for Mika and transitions to the "Shifts. Stations. Quotas."
+  // staggered triplet (Phase B) inside the same dialog box.
+  s01_agencyGameplay: 402,  // 13.4s — Phase A 172f + Phase B 230f (S01 ends at 945)
+  s03_conversations:  108,  // 3.6s — "Talk to them. They'll talk back."
+  s04_emergence:      122,  // 4.07s — split captions
+  s05_bondLoop:       190,  // 6.33s — "Deeper bonds. Deeper rooms. Deeper truths."
+  s06_tierUp:         68,   // 2.27s — silent FOSH/Castles tier-up
+  s07_puncture:       180,  // 6s — "Make them remember." (anchored at frame 1433)
 
   // Closer
   s15_black:           60,  // 2s — black
@@ -523,25 +529,25 @@ const Scene00_EdiOpener: React.FC = () => {
   });
 
   // Scene end = title hold end, which is also when the static-shader
-  // transition wipes out to the next scene.
+  // transition wipes out to the next scene. Last RENDERED frame is
+  // sceneEnd - 1; the peak burst must land before that.
   const sceneEnd = EDI_VIDEO_FRAMES + OPENER_TITLE_FRAMES; // = 480 + 55 = 535
+  const burstPeakFrame = sceneEnd - 2;                     // last 2 frames hold full static
 
   // Backdrop-shader reveal envelope: 0 before title (burst), decays to
-  // a calm scanline veil during the hold, then drops back toward 0 in
-  // the last few frames so the static burst comes roaring back for
-  // the transition out.
+  // a calm scanline veil during the hold, then drops back to 0 at
+  // burstPeakFrame so the last visible frames sit on full static.
   const slideReveal = interpolate(
     frame,
-    [titleStart - 4, titleStart + 4, titleStart + 40, sceneEnd - OPENER_TRANSITION_FRAMES, sceneEnd],
+    [titleStart - 4, titleStart + 4, titleStart + 40, sceneEnd - OPENER_TRANSITION_FRAMES, burstPeakFrame],
     [0, 0.0, 1.0, 1.0, 0.0],
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
   );
-  // uBoost ramps 0 → 1 over the last OPENER_TRANSITION_FRAMES so the
-  // shader switches from "subtle title veil" to "full-screen static
-  // wipe" for the transition into the next scene.
+  // uBoost ramps 0 → 1 over the same window, peaking 2 frames before
+  // sceneEnd so the full-static peak is rendered, not skipped.
   const slideBoost = interpolate(
     frame,
-    [sceneEnd - OPENER_TRANSITION_FRAMES, sceneEnd],
+    [sceneEnd - OPENER_TRANSITION_FRAMES, burstPeakFrame],
     [0, 1],
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
   );
@@ -553,25 +559,25 @@ const Scene00_EdiOpener: React.FC = () => {
           appears on the captured video. The tutorial runtime shows
           the dialog ~600ms after the play click, with a 150ms pre-
           roll baked into the trim. 0.75s × 30fps ≈ frame 22. */}
-      <Sequence from={22} durationInFrames={32}>
+      <Sequence from={22} durationInFrames={32} name="VO · ... Are you awake?">
         <Audio src={staticFile('trailer/edi-awake.flac')} />
       </Sequence>
 
       {/* Edi's follow-up shift line at frame 165 (5.5s).
           Clip is 3.84s ≈ 116 frames. */}
-      <Sequence from={165} durationInFrames={120}>
+      <Sequence from={165} durationInFrames={120} name="VO · Right in time for today's shift">
         <Audio src={staticFile('trailer/edi-shift.flac')} />
       </Sequence>
 
       {/* "Here are the candidates for today. Choose one." at
           frame 255 (8.5s). Clip is 3.83s ≈ 115 frames. */}
-      <Sequence from={255} durationInFrames={120}>
+      <Sequence from={255} durationInFrames={120} name="VO · Here are the candidates">
         <Audio src={staticFile('trailer/edi-candidates.flac')} />
       </Sequence>
 
       {/* "Interesting choice. Let's see how they last at The Agency."
           at frame 385 (12.83s). Clip is 3.88s ≈ 117 frames. */}
-      <Sequence from={385} durationInFrames={122}>
+      <Sequence from={385} durationInFrames={122} name="VO · Interesting choice (The Agency)">
         <Audio src={staticFile('trailer/edi-agency.flac')} />
       </Sequence>
 
@@ -681,98 +687,409 @@ const AGENCY_GAMEPLAY_SRC = staticFile('trailer/agency-gameplay.mp4');
 
 const Scene01_AgencyGameplay: React.FC = () => {
   const frame = useCurrentFrame();
+  const { width: compW, height: compH } = useVideoConfig();
 
-  // Caption envelope: fade-in → hold → fade-out, all over the playing
-  // video. Total caption window = fadeIn + hold + fadeOut frames.
-  const c1 = AGENCY_CAPTION_FADEIN;
-  const c2 = c1 + AGENCY_CAPTION_HOLD;
-  const c3 = c2 + AGENCY_CAPTION_FADEOUT;
-  const captionOpacity = interpolate(frame, [0, c1, c2, c3], [0, 1, 1, 0], {
+  // ── Phase boundary ───────────────────────────────────────────────
+  // Phase A (0..PHASE_B_START): "Unravel the machinations" dialog.
+  // Phase B (PHASE_B_START..end): three-word "Shifts. Stations. Quotas."
+  //   triplet staggered into the same dialog box.
+  const PHASE_B_START = 172;
+
+  // ── Element entrance envelopes (phase A) ────────────────────────
+  const videoEnter = interpolate(frame, [10, 28], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const avatarEnter = interpolate(frame, [22, 40], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const eyebrowEnter = interpolate(frame, [18, 30], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const headlineEnter = interpolate(frame, [28, 46], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
 
-  // Slight scale-in so the caption arrives with motion, not statically
-  const captionScale = interpolate(frame, [0, c1], [0.96, 1], {
+  // Phase A headline fades out as Phase B takes over.
+  const headlineExit = interpolate(frame, [PHASE_B_START - 12, PHASE_B_START], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  const headlineOpacity = headlineEnter * headlineExit;
 
-  // Darkening scrim under the caption so the typography reads cleanly
-  // over the busy gameplay frame. Tracks the caption opacity so the
-  // scrim disappears as soon as the type does.
-  const scrimOpacity = captionOpacity * 0.62;
+  // ── Phase B: three-word triplet stagger ─────────────────────────
+  // Original S02 staggers were [6,22], [38,54], [70,86] in a 144-frame
+  // scene. Offset by PHASE_B_START so they land in this combined scene.
+  // "Secrets." is a fourth, late-arriving word in pulsing red — lands
+  // at composition frame 900 (= 543 s00 + 357 in-scene).
+  const SECRETS_IN_FRAME = 357;
+  const wordTimings = [
+    [PHASE_B_START +  6, PHASE_B_START + 22],   // "Shifts."
+    [PHASE_B_START + 38, PHASE_B_START + 54],   // "Stations."
+    [PHASE_B_START + 70, PHASE_B_START + 86],   // "Quotas."
+    [SECRETS_IN_FRAME,   SECRETS_IN_FRAME + 16],// "Secrets." (red pulse)
+  ];
+  const words = ['Shifts.', 'Stations.', 'Quotas.', 'Secrets.'];
+  // Pulsing red brightness for the last word.
+  const secretsPulse = 0.78 + 0.22 * Math.sin(frame * 0.18);
 
-  // Small fade at the end of the video so the next scene transitions
-  // cleanly rather than hard-cutting on a moving frame.
-  const videoOpacity = interpolate(
+  // Static-shader fade-out from S00's transition (top of scene).
+  const staticBoost = interpolate(
     frame,
-    [AGENCY_VIDEO_FRAMES - 16, AGENCY_VIDEO_FRAMES],
+    [0, S01_STATIC_FADEOUT_FRAMES],
     [1, 0],
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
   );
+  const staticActive = frame < S01_STATIC_FADEOUT_FRAMES + 2;
+
+  // Outro: screenshake + TV-static wipe at the END of S01, bridging
+  // into S03. Mirrors the S00→S01 transition in reverse.
+  const SCENE_END = D.s01_agencyGameplay;
+  const OUTRO_STATIC_FRAMES = 12;
+  const OUTRO_SHAKE_FRAMES  = 32;
+
+  // Screenshake ramps in over the last ~32 frames, peaks just before
+  // the static takes over.
+  const shakeT = interpolate(
+    frame,
+    [SCENE_END - OUTRO_SHAKE_FRAMES, SCENE_END - 4],
+    [0, 1],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+  );
+  const shakeAmp = shakeT * shakeT * 22; // ease-in (^2) for sharper ramp
+  const shakeX = (random(`sx-${frame}`) - 0.5) * 2 * shakeAmp;
+  const shakeY = (random(`sy-${frame}`) - 0.5) * 2 * shakeAmp;
+
+  // Outro static — peaks 2 frames before the cut so the last visible
+  // frames sit on full white-noise (same trick used in S00).
+  const outroBoost = interpolate(
+    frame,
+    [SCENE_END - OUTRO_STATIC_FRAMES, SCENE_END - 2],
+    [0, 1],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+  );
+  const outroStaticActive = frame >= SCENE_END - OUTRO_STATIC_FRAMES - 2;
+
+  // CRT overlay intensity — fades in with Nina's arrival (matches
+  // the same 14-frame cross-fade window the avatar swap uses) and
+  // stays on for the rest of the scene. The CRT-pulse modulates the
+  // scanline darkness so the effect has life.
+  const CRT_FADEIN_WINDOW = 14;
+  const crtIntensity = interpolate(
+    frame,
+    [SECRETS_IN_FRAME - CRT_FADEIN_WINDOW / 2, SECRETS_IN_FRAME + CRT_FADEIN_WINDOW / 2],
+    [0, 1],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+  );
+  const crtPulse = 0.85 + 0.15 * Math.sin(frame * 0.42);
+
+  // Layout — visual-novel pattern:
+  //   1. Gameplay video as the FULL-BLEED background. Phone-aspect
+  //      portrait video uses object-fit:cover with a blurred copy of
+  //      the same source filling the side gutters so the entire
+  //      1920×1080 frame is gameplay texture (no black margins).
+  //   2. Edi avatar overlays bottom-left, transparent PNG; bleeds
+  //      slightly off the left edge and anchored flush to comp bottom
+  //      (image is cropped at the bottom).
+  //   3. Dialog box overlays the lower edge — semi-transparent so the
+  //      gameplay stays visible through it.
+
+  const PORTRAIT_HEIGHT = compH;                                    // full height
+  const PORTRAIT_WIDTH  = Math.round(PORTRAIT_HEIGHT * (406 / 808)); // ≈ 542px
+  const PORTRAIT_LEFT   = Math.round((compW - PORTRAIT_WIDTH) / 2);  // centered
+
+  const AVATAR_WIDTH  = 720;
+  const AVATAR_HEIGHT = 1040;
+  const AVATAR_LEFT   = -40;
+
+  const CARD_LEFT   = 460;
+  const CARD_RIGHT  = 100;
+  const CARD_BOTTOM = 70;
+  const CARD_HEIGHT = 200;
 
   return (
     <AbsoluteFill style={{ backgroundColor: SCLAB.ink['100'] }}>
-      {/* Gameplay video — plays from frame 0, full bleed. */}
-      <AbsoluteFill style={{ opacity: videoOpacity }}>
+     {/* Shake wrapper — translates the scene contents in the last
+         ~32 frames so the cut to S03 feels impact-driven. The static
+         overlay below sits OUTSIDE this wrapper so it stays steady. */}
+     <AbsoluteFill style={{ transform: `translate(${shakeX}px, ${shakeY}px)` }}>
+      {/* Blurred backdrop — same video stretched + heavily blurred so
+          the side gutters around the portrait read as gameplay texture
+          instead of black margins. Multiple OffthreadVideo instances
+          with the same src remain frame-synced via useCurrentFrame. */}
+      <AbsoluteFill style={{
+        filter: 'blur(48px) brightness(0.55) saturate(1.1)',
+        transform: 'scale(1.12)',
+        opacity: videoEnter,
+      }}>
         <OffthreadVideo
-          src={AGENCY_GAMEPLAY_SRC}
-          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+          src={EDI_VIDEO_SRC}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
       </AbsoluteFill>
 
-      {/* Scrim — darkens the video while the caption is up */}
-      {scrimOpacity > 0 && (
-        <AbsoluteFill
-          style={{
-            background: `radial-gradient(ellipse at center, rgba(0,0,0,${scrimOpacity}) 0%, rgba(0,0,0,${scrimOpacity * 0.55}) 70%, rgba(0,0,0,0) 100%)`,
-            pointerEvents: 'none',
-          }}
+      {/* Portrait gameplay video — full-height, centered, undistorted */}
+      <div
+        style={{
+          position: 'absolute',
+          left: PORTRAIT_LEFT,
+          top: 0,
+          width: PORTRAIT_WIDTH,
+          height: PORTRAIT_HEIGHT,
+          opacity: videoEnter,
+          overflow: 'hidden',
+          boxShadow: `0 0 120px rgba(0, 0, 0, 0.5)`,
+        }}
+      >
+        <OffthreadVideo
+          src={EDI_VIDEO_SRC}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
-      )}
+      </div>
 
-      {/* Caption overlay — typography on top of the dimmed video */}
-      {captionOpacity > 0 && (
-        <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-          <div
-            style={{
-              opacity: captionOpacity,
-              transform: `scale(${captionScale})`,
-              textAlign: 'center',
-              maxWidth: '78%',
-              textShadow: '0 4px 32px rgba(0,0,0,0.8)',
-            }}
-          >
-            <div
-              style={{
-                fontFamily: SCLAB_FONTS.mono,
-                fontSize: '1.1rem',
-                letterSpacing: '0.28em',
-                textTransform: 'uppercase',
-                color: SCLAB.signal['500'],
-                marginBottom: 38,
-              }}
-            >
-              [ TRANSMISSION 002 ]
-            </div>
+      {/* Character avatar — three layered states with cross-fades:
+            1. Edi (Phase A)
+            2. Mika neutral (Phase B, before "Secrets." appears)
+            3. Mika shushing (from the "Secrets." moment onward)
+          Mika's source PNG is larger than Edi's so per-character
+          scale keeps them visually matched. */}
+      {(() => {
+        // Edi → Mika cross-fade at PHASE_B_START
+        const SWAP_WINDOW = 16;
+        const mikaInForA = interpolate(
+          frame,
+          [PHASE_B_START - SWAP_WINDOW / 2, PHASE_B_START + SWAP_WINDOW / 2],
+          [0, 1],
+          { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+        );
+        const ediOpacity = 1 - mikaInForA;
+        // Mika-neutral → Mika-shh cross-fade at SECRETS_IN_FRAME
+        const SHH_WINDOW = 14;
+        const shhInForB = interpolate(
+          frame,
+          [SECRETS_IN_FRAME - SHH_WINDOW / 2, SECRETS_IN_FRAME + SHH_WINDOW / 2],
+          [0, 1],
+          { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+        );
+        const mikaNeutralOpacity = mikaInForA * (1 - shhInForB);
+        const mikaShhOpacity     = mikaInForA * shhInForB;
+
+        const EDI_SCALE  = 1.10;
+        const MIKA_SCALE = EDI_SCALE * 0.92; // ≈ 1.012
+        const containerStyle = (mul: number, scale: number): React.CSSProperties => ({
+          position: 'absolute',
+          left: AVATAR_LEFT + (1 - avatarEnter) * -40,
+          bottom: 0,
+          width: AVATAR_WIDTH,
+          height: AVATAR_HEIGHT,
+          opacity: avatarEnter * mul,
+          overflow: 'hidden',
+          // bottom-center origin: scaling shrinks Mika in from BOTH
+          // sides equally so she stays anchored at the same horizontal
+          // midpoint as Edi instead of pulling toward the left edge.
+          transform: `scale(${scale})`,
+          transformOrigin: 'bottom center',
+        });
+        const imgStyle: React.CSSProperties = {
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain',
+          objectPosition: 'bottom',
+          filter: 'drop-shadow(0 30px 60px rgba(0, 0, 0, 0.65))',
+        };
+        return (
+          <>
+            {ediOpacity > 0.001 && (
+              <div style={containerStyle(ediOpacity, EDI_SCALE)}>
+                <img src={staticFile('trailer/edi.png')} style={imgStyle} />
+              </div>
+            )}
+            {mikaNeutralOpacity > 0.001 && (
+              <div style={containerStyle(mikaNeutralOpacity, MIKA_SCALE)}>
+                <img src={staticFile('trailer/mika.png')} style={imgStyle} />
+              </div>
+            )}
+            {mikaShhOpacity > 0.001 && (
+              <div style={containerStyle(mikaShhOpacity, MIKA_SCALE)}>
+                <img src={staticFile('trailer/nina.png')} style={imgStyle} />
+              </div>
+            )}
+          </>
+        );
+      })()}
+
+      {/* Dialog overlay — semi-transparent so the gameplay stays
+          visible through it. Sits along the bottom edge. */}
+      <div
+        style={{
+          position: 'absolute',
+          left: CARD_LEFT,
+          right: CARD_RIGHT,
+          bottom: CARD_BOTTOM + (1 - eyebrowEnter) * 24,
+          height: CARD_HEIGHT,
+          opacity: eyebrowEnter,
+          padding: '32px 44px',
+          background: `linear-gradient(180deg, rgba(11,11,12,0.65) 0%, rgba(11,11,12,0.80) 100%)`,
+          backdropFilter: 'blur(14px) saturate(1.1)',
+          border: `1px solid ${SCLAB.bone['300']}33`,
+          borderLeft: `3px solid ${SCLAB.signal['500']}`,
+          boxShadow: `0 20px 60px rgba(0, 0, 0, 0.55)`,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+        }}
+      >
+        {/* Speaker tag */}
+        <div
+          style={{
+            fontFamily: SCLAB_FONTS.mono,
+            fontSize: '0.95rem',
+            letterSpacing: '0.32em',
+            textTransform: 'uppercase',
+            color: SCLAB.signal['500'],
+            marginBottom: 18,
+            textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+          }}
+        >
+          [ TRANSMISSION 002 ]
+        </div>
+
+        {/* Headline area — Phase A holds the "Unravel" line, then
+            fades out as Phase B's word triplet takes over in the
+            same physical slot. */}
+        <div style={{ position: 'relative', minHeight: 60 }}>
+          {/* Phase A — "Unravel the machinations of The Agency." */}
+          {headlineOpacity > 0.001 && (
             <h1
               style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
                 fontFamily: SCLAB_FONTS.serif,
                 fontStyle: 'italic',
-                fontSize: '6.5rem',
-                lineHeight: 1.0,
-                color: SCLAB.bone['900'],
+                fontSize: '3rem',
+                lineHeight: 1.1,
                 letterSpacing: '-0.01em',
                 fontWeight: 400,
+                color: SCLAB.bone['900'],
                 margin: 0,
+                opacity: headlineOpacity,
+                transform: `translateX(${(1 - headlineEnter) * 20}px)`,
+                whiteSpace: 'nowrap',
+                textShadow: '0 4px 16px rgba(0,0,0,0.75)',
               }}
             >
-              Unravel the machinations
-              <br />
+              Unravel the machinations{' '}
               <span style={{ fontStyle: 'normal' }}>of The Agency.</span>
             </h1>
-          </div>
+          )}
+
+          {/* Phase B — "Shifts. Stations. Quotas." staggered triplet */}
+          {frame >= PHASE_B_START - 4 && (
+            <div
+              style={{
+                display: 'flex',
+                gap: 36,
+                fontFamily: SCLAB_FONTS.serif,
+                fontSize: '3.6rem',
+                lineHeight: 1.0,
+                letterSpacing: '-0.01em',
+                fontWeight: 400,
+                color: SCLAB.bone['900'],
+                textShadow: '0 4px 16px rgba(0,0,0,0.75)',
+              }}
+            >
+              {words.map((word, i) => {
+                const [start, end] = wordTimings[i];
+                const wOpacity = interpolate(frame, [start, end], [0, 1], {
+                  extrapolateLeft: 'clamp',
+                  extrapolateRight: 'clamp',
+                });
+                const wY = interpolate(wOpacity, [0, 1], [16, 0]);
+                const isRed = word === 'Secrets.';
+                const redR = Math.round(220 + 35 * secretsPulse);
+                const redG = Math.round(50 * (1 - secretsPulse) + 30);
+                const redB = Math.round(50 * (1 - secretsPulse) + 30);
+                const redColor = `rgb(${redR}, ${redG}, ${redB})`;
+                return (
+                  <div
+                    key={word}
+                    style={{
+                      opacity: wOpacity,
+                      transform: `translateY(${wY}px)`,
+                      color: isRed ? redColor : undefined,
+                      fontWeight: isRed ? 600 : undefined,
+                      textShadow: isRed
+                        ? `0 4px 16px rgba(0,0,0,0.75), 0 0 ${18 + secretsPulse * 16}px rgba(${redR},${redG},${redB},${0.45 + secretsPulse * 0.25})`
+                        : undefined,
+                    }}
+                  >
+                    {word}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* CRT overlay — kicks in when Nina arrives. Scanlines + edge
+          vignette + faint red tint on top of the whole scene. */}
+      {crtIntensity > 0.001 && (
+        <AbsoluteFill style={{ pointerEvents: 'none', opacity: crtIntensity }}>
+          {/* Scanlines */}
+          <AbsoluteFill style={{
+            background: `repeating-linear-gradient(180deg,
+              rgba(0,0,0,0) 0px,
+              rgba(0,0,0,0) 2px,
+              rgba(0,0,0,${0.32 * crtPulse}) 3px,
+              rgba(0,0,0,${0.32 * crtPulse}) 4px)`,
+            mixBlendMode: 'multiply',
+          }} />
+          {/* Edge vignette — darkens corners, brightens center area */}
+          <AbsoluteFill style={{
+            background: 'radial-gradient(ellipse at center, rgba(0,0,0,0) 35%, rgba(0,0,0,0.55) 100%)',
+          }} />
+          {/* Faint red signal tint — matches the "Secrets." pulse */}
+          <AbsoluteFill style={{
+            background: 'rgba(180, 30, 30, 0.08)',
+            mixBlendMode: 'screen',
+          }} />
+          {/* Subtle horizontal flicker line — sweeps top-to-bottom slowly */}
+          <AbsoluteFill style={{
+            background: `linear-gradient(180deg,
+              rgba(255,255,255,0) ${(frame * 1.3) % 100 - 2}%,
+              rgba(255,255,255,${0.04 * crtPulse}) ${(frame * 1.3) % 100}%,
+              rgba(255,255,255,0) ${(frame * 1.3) % 100 + 2}%)`,
+            mixBlendMode: 'screen',
+          }} />
+        </AbsoluteFill>
+      )}
+     </AbsoluteFill>
+     {/* ── END SHAKE WRAPPER ────────────────────────────────────── */}
+
+      {/* Outro static — ramps in over the last 12 frames so the cut
+          to S03 wipes through full TV static (mirrors the S00→S01
+          transition). Sits OUTSIDE the shake wrapper so the static
+          itself stays steady. */}
+      {outroStaticActive && (
+        <AbsoluteFill style={{ pointerEvents: 'none' }}>
+          <ThreeCanvas width={compW} height={compH}>
+            <TitleBackdropShader reveal={0} boost={outroBoost} />
+          </ThreeCanvas>
+        </AbsoluteFill>
+      )}
+
+      {/* Static shader fading out — picks up where S00's transition
+          left off so the cut into S01 is bridged, not hard. */}
+      {staticActive && (
+        <AbsoluteFill style={{ pointerEvents: 'none' }}>
+          <ThreeCanvas width={compW} height={compH}>
+            <TitleBackdropShader reveal={0} boost={staticBoost} />
+          </ThreeCanvas>
         </AbsoluteFill>
       )}
     </AbsoluteFill>
@@ -873,65 +1190,31 @@ const FootagePlaceholder: React.FC<{
     </div>
   </AbsoluteFill>
 );
-
-// ============================================================================
-// SCENE 02 — Surface loop: "Shifts. Stations. Quotas."
-// Plant the genre. Show the production-line gameplay so FOSH/Castles
-// viewers recognize the shape.
-// ============================================================================
-const Scene02_SurfaceLoop: React.FC = () => {
-  const frame = useCurrentFrame();
-
-  // Three-word triplet — each word lands on its own ~32-frame beat.
-  // Tightened for the 144-frame s02_surfaceLoop window.
-  const wordTimings = [
-    [6, 22],   // "Shifts."
-    [38, 54],  // "Stations."
-    [70, 86],  // "Quotas."
-  ];
-
-  const overall = fadeInOut(frame, D.s02_surfaceLoop, 8, 14);
-  const scrim = interpolate(frame, [10, 30, D.s02_surfaceLoop - 30, D.s02_surfaceLoop - 6], [0, 0.6, 0.55, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-
-  return (
-    <AbsoluteFill style={{ backgroundColor: SCLAB.ink['100'] }}>
-      <FootagePlaceholder label="AGENTS AT STATIONS · RESOURCES TICKING" hint="capture: 3 rooms producing in parallel" />
-      <AbsoluteFill style={{ backgroundColor: `rgba(0,0,0,${scrim})`, pointerEvents: 'none' }} />
-      <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', opacity: overall }}>
-        <div style={{ display: 'flex', gap: 48 }}>
-          {['Shifts.', 'Stations.', 'Quotas.'].map((word, i) => {
-            const [start, end] = wordTimings[i];
-            const wOpacity = interpolate(frame, [start, end], [0, 1], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            });
-            const wY = interpolate(wOpacity, [0, 1], [16, 0]);
-            return (
-              <div key={word} style={{ opacity: wOpacity, transform: `translateY(${wY}px)` }}>
-                <HeadlineSerif size="5.5rem">{word}</HeadlineSerif>
-              </div>
-            );
-          })}
-        </div>
-      </AbsoluteFill>
-    </AbsoluteFill>
-  );
-};
-
 // ============================================================================
 // SCENE 03 — Conversations: "Talk to them. They'll talk back."
 // Cut from system-shots to a face. The shift in framing is the message.
 // ============================================================================
 const Scene03_Conversations: React.FC = () => {
   const frame = useCurrentFrame();
+  const { width: compW, height: compH } = useVideoConfig();
+
   const captionOpacity = interpolate(frame, [20, 40, D.s03_conversations - 30, D.s03_conversations - 8], [0, 1, 1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
   const scrim = captionOpacity * 0.6;
+
+  // Static fade-out at the start — picks up from S01's outro static
+  // so the cut from S01 → S03 wipes through static rather than
+  // hard-cutting on a moving frame.
+  const S03_STATIC_FADEIN_FRAMES = 14;
+  const staticBoost = interpolate(
+    frame,
+    [0, S03_STATIC_FADEIN_FRAMES],
+    [1, 0],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+  );
+  const staticActive = frame < S03_STATIC_FADEIN_FRAMES + 2;
 
   return (
     <AbsoluteFill style={{ backgroundColor: SCLAB.ink['100'] }}>
@@ -951,6 +1234,16 @@ const Scene03_Conversations: React.FC = () => {
           </HeadlineSerif>
         </div>
       </AbsoluteFill>
+
+      {/* Static shader fading out — bridges the cut from S01's outro
+          static so the transition feels continuous. */}
+      {staticActive && (
+        <AbsoluteFill style={{ pointerEvents: 'none' }}>
+          <ThreeCanvas width={compW} height={compH}>
+            <TitleBackdropShader reveal={0} boost={staticBoost} />
+          </ThreeCanvas>
+        </AbsoluteFill>
+      )}
     </AbsoluteFill>
   );
 };
@@ -1014,13 +1307,13 @@ const Scene05_BondLoop: React.FC = () => {
   const frame = useCurrentFrame();
   const lines = ['Deeper bonds.', 'Deeper rooms.', 'Deeper truths.'];
 
-  // Stagger: each line arrives 50f after the previous. Tightened for
-  // the 222-frame s05_bondLoop window so the last line still has room
+  // Stagger: each line arrives ~42f after the previous. Tightened for
+  // the 190-frame s05_bondLoop window so the last line still has room
   // to hold before the scene fades out.
   const lineTimings = [
-    { start: 10, in: 16 },
-    { start: 60, in: 16 },
-    { start: 110, in: 16 },
+    { start: 8,   in: 14 },
+    { start: 50,  in: 14 },
+    { start: 92,  in: 14 },
   ];
 
   const overall = fadeInOut(frame, D.s05_bondLoop, 6, 24);
@@ -1065,8 +1358,12 @@ const Scene05_BondLoop: React.FC = () => {
 // ============================================================================
 const Scene06_TierUpSilent: React.FC = () => {
   const frame = useCurrentFrame();
-  const fillT = interpolate(frame, [10, 70], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
-  const newRow = interpolate(frame, [70, 110], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  // Proportional timing so the new-row reveal still lands inside the
+  // shorter window (was hardcoded for a 150f scene).
+  const fillEnd = Math.round(D.s06_tierUp * 0.47);
+  const newRowEnd = Math.round(D.s06_tierUp * 0.74);
+  const fillT = interpolate(frame, [4, fillEnd], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const newRow = interpolate(frame, [fillEnd, newRowEnd], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   const overall = fadeInOut(frame, D.s06_tierUp, 10, 14);
 
   return (
@@ -1185,9 +1482,9 @@ const Scene17_CTA: React.FC = () => {
 // ============================================================================
 export const TheAgencyTrailer: React.FC = () => {
   let f = 0;
-  const seq = (dur: number, node: React.ReactNode, key: string) => {
+  const seq = (dur: number, node: React.ReactNode, key: string, name?: string) => {
     const el = (
-      <Sequence key={key} from={f} durationInFrames={dur}>
+      <Sequence key={key} from={f} durationInFrames={dur} name={name ?? key}>
         {node}
       </Sequence>
     );
@@ -1202,10 +1499,10 @@ export const TheAgencyTrailer: React.FC = () => {
           continues — same effect as if the song had played from
           frame 97 with a silent passage 358→534 silenced, but
           without the gap. */}
-      <Sequence from={97} durationInFrames={358 - 97}>
+      <Sequence from={97} durationInFrames={358 - 97} name="BGM · pre-puncture">
         <Audio src={staticFile('trailer/bg.mp3')} volume={0.45} />
       </Sequence>
-      <Sequence from={358}>
+      <Sequence from={358} name="BGM · post-jump">
         <Audio
           src={staticFile('trailer/bg.mp3')}
           startFrom={535 - 97}
@@ -1213,17 +1510,16 @@ export const TheAgencyTrailer: React.FC = () => {
         />
       </Sequence>
 
-      {seq(D.s00_opener,         <Scene00_EdiOpener />,         's00')}
-      {seq(D.s01_agencyGameplay, <Scene01_AgencyGameplay />,    's01')}
-      {seq(D.s02_surfaceLoop,    <Scene02_SurfaceLoop />,       's02')}
-      {seq(D.s03_conversations,  <Scene03_Conversations />,     's03')}
-      {seq(D.s04_emergence,      <Scene04_Emergence />,         's04')}
-      {seq(D.s05_bondLoop,       <Scene05_BondLoop />,          's05')}
-      {seq(D.s06_tierUp,         <Scene06_TierUpSilent />,      's06')}
-      {seq(D.s07_puncture,       <Scene07_Puncture />,          's07')}
-      {seq(D.s15_black,          <Scene15_Black />,             's15')}
-      {seq(D.s16_titleReturn,    <Scene16_TitleReturn />,       's16')}
-      {seq(D.s17_cta,            <Scene17_CTA />,               's17')}
+      {seq(D.s00_opener,         <Scene00_EdiOpener />,         's00', 'S00 · Edi Opener')}
+      {seq(D.s01_agencyGameplay, <Scene01_AgencyGameplay />,    's01', 'S01 · Unravel + Shifts/Stations/Quotas')}
+      {seq(D.s03_conversations,  <Scene03_Conversations />,     's03', "S03 · Talk to them")}
+      {seq(D.s04_emergence,      <Scene04_Emergence />,         's04', 'S04 · Every agent is alive')}
+      {seq(D.s05_bondLoop,       <Scene05_BondLoop />,          's05', 'S05 · Deeper bonds')}
+      {seq(D.s06_tierUp,         <Scene06_TierUpSilent />,      's06', 'S06 · Tier-up (silent)')}
+      {seq(D.s07_puncture,       <Scene07_Puncture />,          's07', 'S07 · Make them remember')}
+      {seq(D.s15_black,          <Scene15_Black />,             's15', 'S15 · Black')}
+      {seq(D.s16_titleReturn,    <Scene16_TitleReturn />,       's16', 'S16 · Title return')}
+      {seq(D.s17_cta,            <Scene17_CTA />,               's17', 'S17 · Wishlist CTA')}
     </AbsoluteFill>
   );
 };
