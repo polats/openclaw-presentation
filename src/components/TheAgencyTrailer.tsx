@@ -90,16 +90,18 @@ const D = {
   // for Mika and transitions to the "Shifts. Stations. Quotas."
   // staggered triplet (Phase B) inside the same dialog box.
   s01_agencyGameplay: 402,  // 13.4s — Phase A 172f + Phase B 230f (S01 ends at 945)
-  s03_conversations:  108,  // 3.6s — "Talk to them. They'll talk back."
-  s04_emergence:      122,  // 4.07s — split captions
-  s05_bondLoop:       190,  // 6.33s — "Deeper bonds. Deeper rooms. Deeper truths."
-  s06_tierUp:         68,   // 2.27s — silent FOSH/Castles tier-up
+  // S03+S04+S05+S06 combined: dialog-phase scene absorbs the silent
+  // tier-up's 68 frames so S07 stays anchored at frame 1433 without
+  // any tier-up beat in between.
+  s03_dialogPhases:   488,  // 16.27s — was 420f, +68f from removed s06
   s07_puncture:       180,  // 6s — "Make them remember." (anchored at frame 1433)
 
   // Closer
   s15_black:           60,  // 2s — black
-  s16_titleReturn:     90,  // 3s — title card with taglines
-  s17_cta:             60,  // 2s — wishlist on Steam
+  // S16 absorbs the former S17 (Wishlist CTA was removed). Title
+  // return now holds for 5s — bg music fades out across the back
+  // half (the window where S17 used to live).
+  s16_titleReturn:     150, // 5s — was 90 (title) + 60 (former S17)
 };
 
 export const THE_AGENCY_TOTAL_FRAMES = Object.values(D).reduce((a, b) => a + b, 0);
@@ -683,11 +685,31 @@ const Scene00_EdiOpener: React.FC = () => {
 //     plays full-bleed. Agents at stations, room-to-room camera pan,
 //     resource collection.
 // ============================================================================
-const AGENCY_GAMEPLAY_SRC = staticFile('trailer/agency-gameplay.mp4');
+const AGENCY_SHIFTS_SRC = staticFile('trailer/agency-shifts.mp4');
+// Source duration of agency-shifts.mp4 (seconds). Used to compute a
+// playbackRate so the clip ends exactly when S01 does — speeds the
+// video up if S01 is shorter than the source.
+const AGENCY_SHIFTS_DURATION_S = 16.868;
+
+// Conversation scene source — Mika dialog gameplay.
+const MIKA_CONVO_SRC = staticFile('trailer/mika-convo.mp4');
+const MIKA_CONVO_DURATION_S = 8.6;  // post-trim (first 4s cut)
+
+// Second half of S03 — agent-alive gameplay.
+const ALIVE_SRC = staticFile('trailer/alive.mp4');
+const ALIVE_DURATION_S = 22.377;
+
+// Puncture scene background — phone crack reveal.
+const CRACK_SRC = staticFile('trailer/crack.mp4');
+const CRACK_DURATION_S = 10.0;  // post-trim (first 4s cut)
 
 const Scene01_AgencyGameplay: React.FC = () => {
   const frame = useCurrentFrame();
-  const { width: compW, height: compH } = useVideoConfig();
+  const { width: compW, height: compH, fps } = useVideoConfig();
+
+  // Speed up agency-shifts.mp4 so it lands exactly with S01's end.
+  const sceneDurationS = D.s01_agencyGameplay / fps;
+  const shiftsPlaybackRate = AGENCY_SHIFTS_DURATION_S / sceneDurationS;
 
   // ── Phase boundary ───────────────────────────────────────────────
   // Phase A (0..PHASE_B_START): "Unravel the machinations" dialog.
@@ -826,7 +848,8 @@ const Scene01_AgencyGameplay: React.FC = () => {
         opacity: videoEnter,
       }}>
         <OffthreadVideo
-          src={EDI_VIDEO_SRC}
+          src={AGENCY_SHIFTS_SRC}
+          playbackRate={shiftsPlaybackRate}
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
       </AbsoluteFill>
@@ -845,7 +868,8 @@ const Scene01_AgencyGameplay: React.FC = () => {
         }}
       >
         <OffthreadVideo
-          src={EDI_VIDEO_SRC}
+          src={AGENCY_SHIFTS_SRC}
+          playbackRate={shiftsPlaybackRate}
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
       </div>
@@ -909,7 +933,7 @@ const Scene01_AgencyGameplay: React.FC = () => {
             )}
             {mikaNeutralOpacity > 0.001 && (
               <div style={containerStyle(mikaNeutralOpacity, MIKA_SCALE)}>
-                <img src={staticFile('trailer/mika.png')} style={imgStyle} />
+                <img src={staticFile('trailer/nina2.png')} style={imgStyle} />
               </div>
             )}
             {mikaShhOpacity > 0.001 && (
@@ -932,8 +956,8 @@ const Scene01_AgencyGameplay: React.FC = () => {
           height: CARD_HEIGHT,
           opacity: eyebrowEnter,
           padding: '32px 44px',
-          background: `linear-gradient(180deg, rgba(11,11,12,0.65) 0%, rgba(11,11,12,0.80) 100%)`,
-          backdropFilter: 'blur(14px) saturate(1.1)',
+          background: `linear-gradient(180deg, rgba(11,11,12,0.22) 0%, rgba(11,11,12,0.38) 100%)`,
+          backdropFilter: 'blur(8px) saturate(1.05)',
           border: `1px solid ${SCLAB.bone['300']}33`,
           borderLeft: `3px solid ${SCLAB.signal['500']}`,
           boxShadow: `0 20px 60px rgba(0, 0, 0, 0.55)`,
@@ -1191,22 +1215,80 @@ const FootagePlaceholder: React.FC<{
   </AbsoluteFill>
 );
 // ============================================================================
-// SCENE 03 — Conversations: "Talk to them. They'll talk back."
-// Cut from system-shots to a face. The shift in framing is the message.
+// SCENE 03 — Combined dialog phases (was S03 + S04 + S05).
+//
+// Reuses the S01 layout (blurred backdrop video + centered portrait
+// video + Mika avatar bottom-left + dialog box). The avatar and video
+// stay put; only the dialog headline cycles through four caption
+// beats with fade transitions:
+//
+//   Phase A  (0..108)    "Talk to them. They'll talk back."
+//   Phase B  (108..180)  "Every agent is alive."
+//   Phase C  (180..240)  "Every story is different."
+//   Phase D  (240..420)  "Deeper bonds. Deeper rooms. Deeper truths."
+//                        (three lines, staggered)
+//
+// Static fade-in at the top bridges from S01's outro static.
 // ============================================================================
-const Scene03_Conversations: React.FC = () => {
+const Scene03_DialogPhases: React.FC = () => {
   const frame = useCurrentFrame();
-  const { width: compW, height: compH } = useVideoConfig();
+  const { width: compW, height: compH, fps } = useVideoConfig();
 
-  const captionOpacity = interpolate(frame, [20, 40, D.s03_conversations - 30, D.s03_conversations - 8], [0, 1, 1, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const scrim = captionOpacity * 0.6;
+  // Caption phase boundaries (scene-local frames).
+  //   PHASE_A_END = 163  →  "Talk to them. They'll talk back." holds
+  //                          until the mika-johnny.flac + gated video end.
+  //   PHASE_B_END = 245  →  "Every story is different." starts fading in
+  //                          at scene-local 238 (composition frame 1183).
+  //   PHASE_C_END = 296  →  Phase D ("Deeper bonds…") follows.
+  const PHASE_A_END = 163;
+  const PHASE_B_END = 245;
+  const PHASE_C_END = 296;
+  // Phase D runs PHASE_C_END → D.s03_dialogPhases.
 
-  // Static fade-out at the start — picks up from S01's outro static
-  // so the cut from S01 → S03 wipes through static rather than
-  // hard-cutting on a moving frame.
+  // Entrance staggers (matches S01 patterns)
+  const videoEnter = interpolate(frame, [10, 28], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const avatarEnter = interpolate(frame, [22, 40], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const eyebrowEnter = interpolate(frame, [18, 30], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  // Cross-faded caption opacities — each peaks during its phase and
+  // fades out as the next phase begins.
+  const fadeOverlap = 14;
+  const captionA = interpolate(
+    frame,
+    [10, 28, PHASE_A_END - fadeOverlap, PHASE_A_END],
+    [0, 1, 1, 0],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+  );
+  // "They'll talk back." is delayed — appears at composition frame
+  // 1009 (scene-local 64) when mika-johnny.flac plays.
+  const TALK_BACK_REVEAL_FRAME = 64;
+  const talkBackOpacity = interpolate(
+    frame,
+    [TALK_BACK_REVEAL_FRAME, TALK_BACK_REVEAL_FRAME + 14],
+    [0, 1],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+  );
+  const captionB = interpolate(
+    frame,
+    [PHASE_A_END - fadeOverlap / 2, PHASE_A_END + fadeOverlap / 2, PHASE_B_END - fadeOverlap, PHASE_B_END],
+    [0, 1, 1, 0],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+  );
+  const captionC = interpolate(
+    frame,
+    [PHASE_B_END - fadeOverlap / 2, PHASE_B_END + fadeOverlap / 2, PHASE_C_END - fadeOverlap, PHASE_C_END],
+    [0, 1, 1, 0],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+  );
+
+  // Phase D — three-line stagger (was S05's bond loop)
+  const dWords: Array<{ text: string; start: number; in: number; italic?: boolean }> = [
+    { text: 'Deeper bonds.',  start: PHASE_C_END - fadeOverlap / 2, in: 16 },
+    { text: 'Deeper rooms.',  start: PHASE_C_END + 36, in: 16 },
+    { text: 'Deeper truths.', start: PHASE_C_END + 76, in: 16, italic: true },
+  ];
+
+  // Static fade-in from S01's outro
   const S03_STATIC_FADEIN_FRAMES = 14;
   const staticBoost = interpolate(
     frame,
@@ -1216,27 +1298,371 @@ const Scene03_Conversations: React.FC = () => {
   );
   const staticActive = frame < S03_STATIC_FADEIN_FRAMES + 2;
 
+  // Outro static: ramps in over the last 12 frames of S03 (starts at
+  // scene-local 476 = composition frame 1421). Peaks 2 frames before
+  // the cut to S07, same trick as the S01→S03 transition.
+  const S03_OUTRO_STATIC_FRAMES = 12;
+  const S03_SCENE_END = D.s03_dialogPhases;
+  const outroBoost = interpolate(
+    frame,
+    [S03_SCENE_END - S03_OUTRO_STATIC_FRAMES, S03_SCENE_END - 2],
+    [0, 1],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+  );
+  const outroStaticActive = frame >= S03_SCENE_END - S03_OUTRO_STATIC_FRAMES - 2;
+
+  // mika-convo plays at natural speed (1×). Source is 8.6s and S03
+  // is 16.27s — once the clip ends, OffthreadVideo holds on the last
+  // frame for the remainder of the scene.
+
+  // Layout constants (mirrors S01)
+  const PORTRAIT_HEIGHT = compH;
+  const PORTRAIT_WIDTH  = Math.round(PORTRAIT_HEIGHT * (406 / 808));
+  const PORTRAIT_LEFT   = Math.round((compW - PORTRAIT_WIDTH) / 2);
+
+  const AVATAR_WIDTH  = 720;
+  const AVATAR_HEIGHT = 1040;
+  const AVATAR_LEFT   = -40;
+  const MIKA_SCALE    = 1.10 * 0.92; // matches S01's Mika sizing
+
+  const CARD_LEFT   = 460;
+  const CARD_RIGHT  = 100;
+  // Phase A pose — box sits higher in the comp to leave the mika-convo
+  // gameplay area visible. Phase B onward — animate back to the S01
+  // pose (lower, slightly shorter) once "Every agent is alive."
+  // takes over.
+  const A_CARD_HEIGHT = 240;
+  const A_CARD_BOTTOM = 190;
+  const S01_CARD_HEIGHT = 200;
+  const S01_CARD_BOTTOM = 70;
+  const cardMoveT = interpolate(
+    frame,
+    [PHASE_A_END - 7, PHASE_A_END + 14],
+    [0, 1],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+  );
+  const CARD_HEIGHT = interpolate(cardMoveT, [0, 1], [A_CARD_HEIGHT, S01_CARD_HEIGHT]);
+  const CARD_BOTTOM = interpolate(cardMoveT, [0, 1], [A_CARD_BOTTOM, S01_CARD_BOTTOM]);
+
   return (
     <AbsoluteFill style={{ backgroundColor: SCLAB.ink['100'] }}>
-      <FootagePlaceholder label="AGENT PROFILE OPENS · DIALOG EXCHANGE" hint="capture: tap-to-focus + chat panel" />
-      <AbsoluteFill style={{
-        background: `radial-gradient(ellipse at 50% 60%, rgba(0,0,0,${scrim}) 0%, rgba(0,0,0,${scrim * 0.4}) 70%, rgba(0,0,0,0) 100%)`,
-        pointerEvents: 'none',
-      }} />
-      <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', opacity: captionOpacity }}>
-        <div style={{ textAlign: 'center', maxWidth: '72%' }}>
-          <Eyebrow>[ TRANSMISSION 003 ]</Eyebrow>
-          <div style={{ height: 36 }} />
-          <HeadlineSerif size="5.5rem" italic>
-            Talk to them.
-            <br />
-            <span style={{ fontStyle: 'normal' }}>They'll talk back.</span>
-          </HeadlineSerif>
-        </div>
-      </AbsoluteFill>
+      {/* Mika's "Johnny..." VO at scene-local frame 64 = composition
+          frame 1009. Lines up with the "They'll talk back." reveal.
+          Plays the first 3.3 seconds (99 frames @ 30fps). */}
+      <Sequence from={TALK_BACK_REVEAL_FRAME} durationInFrames={99} name="VO · Mika — Johnny (first 3.3s)">
+        <Audio src={staticFile('trailer/mika-johnny.flac')} endAt={99} />
+      </Sequence>
 
-      {/* Static shader fading out — bridges the cut from S01's outro
-          static so the transition feels continuous. */}
+      {/* First-half video: mika-convo runs only while the audio plays,
+          unmounts at the frame mika-johnny.flac ends
+          (TALK_BACK_REVEAL_FRAME + 99 = 163). */}
+      <Sequence from={0} durationInFrames={TALK_BACK_REVEAL_FRAME + 99} name="S03 video · mika-convo">
+        {/* Blurred backdrop video — same trick as S01 */}
+        <AbsoluteFill style={{
+          filter: 'blur(48px) brightness(0.55) saturate(1.1)',
+          transform: 'scale(1.12)',
+          opacity: videoEnter,
+        }}>
+          <OffthreadVideo
+            src={MIKA_CONVO_SRC}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        </AbsoluteFill>
+
+        {/* Portrait gameplay video — centered, full height */}
+        <div
+          style={{
+            position: 'absolute',
+            left: PORTRAIT_LEFT,
+            top: 0,
+            width: PORTRAIT_WIDTH,
+            height: PORTRAIT_HEIGHT,
+            opacity: videoEnter,
+            overflow: 'hidden',
+            boxShadow: '0 0 120px rgba(0, 0, 0, 0.5)',
+          }}
+        >
+          <OffthreadVideo
+            src={MIKA_CONVO_SRC}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        </div>
+      </Sequence>
+
+      {/* Second-half video: alive.mp4 picks up where mika-convo left
+          off (frame 163) and runs until S03 ends. Speed-matched so it
+          plays end-to-end across the remaining 325 frames. */}
+      {(() => {
+        const ALIVE_START = TALK_BACK_REVEAL_FRAME + 99; // 163
+        const ALIVE_DUR_FRAMES = D.s03_dialogPhases - ALIVE_START; // 325
+        const aliveSlotS = ALIVE_DUR_FRAMES / 30;
+        const alivePlaybackRate = ALIVE_DURATION_S / aliveSlotS;
+        // Zoom + letterbox: both start at composition frame 1322
+        // (scene-local 377 = 1322 - 945). The ZOOM finishes at
+        // composition frame 1340 (scene-local 395 = 1340 - 945) and
+        // holds at peak; the LETTERBOX keeps ramping all the way to
+        // S03's end where only ⅓ of the screen (360px) is visible.
+        const ZOOM_START = 377;
+        const ZOOM_END = 395;            // composition frame 1340
+        const zoomScaleT = interpolate(frame, [ZOOM_START, ZOOM_END], [0, 1], {
+          extrapolateLeft: 'clamp',
+          extrapolateRight: 'clamp',
+        });
+        const letterboxT = interpolate(frame, [ZOOM_START, D.s03_dialogPhases], [0, 1], {
+          extrapolateLeft: 'clamp',
+          extrapolateRight: 'clamp',
+        });
+        const portraitScale = interpolate(zoomScaleT, [0, 1], [1, 1.4]);
+        const letterboxH = interpolate(letterboxT, [0, 1], [0, 360]);
+        return (
+          <Sequence from={ALIVE_START} durationInFrames={ALIVE_DUR_FRAMES} name="S03 video · alive">
+            {/* Blurred backdrop */}
+            <AbsoluteFill style={{
+              filter: 'blur(48px) brightness(0.55) saturate(1.1)',
+              transform: 'scale(1.12)',
+            }}>
+              <OffthreadVideo
+                src={ALIVE_SRC}
+                playbackRate={alivePlaybackRate}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            </AbsoluteFill>
+
+            {/* Portrait video — zooms in + letterbox bars grow from
+                the top/bottom of the phone after ZOOM_START. */}
+            <div
+              style={{
+                position: 'absolute',
+                left: PORTRAIT_LEFT,
+                top: 0,
+                width: PORTRAIT_WIDTH,
+                height: PORTRAIT_HEIGHT,
+                overflow: 'hidden',
+                boxShadow: '0 0 120px rgba(0, 0, 0, 0.5)',
+              }}
+            >
+              <OffthreadVideo
+                src={ALIVE_SRC}
+                playbackRate={alivePlaybackRate}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  transform: `scale(${portraitScale})`,
+                  transformOrigin: 'center center',
+                }}
+              />
+              {/* Letterbox bars — grow inward from the top and bottom
+                  of the phone-frame container as the zoom progresses. */}
+              <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0,
+                height: letterboxH, background: '#000', pointerEvents: 'none',
+              }} />
+              <div style={{
+                position: 'absolute', bottom: 0, left: 0, right: 0,
+                height: letterboxH, background: '#000', pointerEvents: 'none',
+              }} />
+            </div>
+          </Sequence>
+        );
+      })()}
+
+      {/* Mika avatar — present for the whole scene */}
+      <div
+        style={{
+          position: 'absolute',
+          left: AVATAR_LEFT + (1 - avatarEnter) * -40,
+          bottom: 0,
+          width: AVATAR_WIDTH,
+          height: AVATAR_HEIGHT,
+          opacity: avatarEnter,
+          overflow: 'hidden',
+          transform: `scale(${MIKA_SCALE})`,
+          transformOrigin: 'bottom center',
+        }}
+      >
+        <img
+          src={staticFile('trailer/mika.png')}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+            objectPosition: 'bottom',
+            filter: 'drop-shadow(0 30px 60px rgba(0, 0, 0, 0.65))',
+          }}
+        />
+      </div>
+
+      {/* Dialog box — same look as S01, cycling caption phases */}
+      <div
+        style={{
+          position: 'absolute',
+          left: CARD_LEFT,
+          right: CARD_RIGHT,
+          bottom: CARD_BOTTOM + (1 - eyebrowEnter) * 24,
+          height: CARD_HEIGHT,
+          opacity: eyebrowEnter,
+          padding: '32px 44px',
+          background: 'linear-gradient(180deg, rgba(11,11,12,0.22) 0%, rgba(11,11,12,0.38) 100%)',
+          backdropFilter: 'blur(8px) saturate(1.05)',
+          border: `1px solid ${SCLAB.bone['300']}33`,
+          borderLeft: `3px solid ${SCLAB.signal['500']}`,
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.55)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+        }}
+      >
+        {/* Eyebrow */}
+        <div
+          style={{
+            fontFamily: SCLAB_FONTS.mono,
+            fontSize: '0.95rem',
+            letterSpacing: '0.32em',
+            textTransform: 'uppercase',
+            color: SCLAB.signal['500'],
+            marginBottom: 18,
+            textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+          }}
+        >
+          [ TRANSMISSION 003 ]
+        </div>
+
+        {/* Headline slot — captions stack absolutely so they can cross-fade. */}
+        <div style={{ position: 'relative', minHeight: 140 }}>
+          {/* Phase A */}
+          {captionA > 0.001 && (
+            <h1
+              style={{
+                position: 'absolute', inset: 0,
+                fontFamily: SCLAB_FONTS.serif,
+                fontStyle: 'italic',
+                fontSize: '3rem',
+                lineHeight: 1.05,
+                letterSpacing: '-0.01em',
+                fontWeight: 400,
+                color: SCLAB.bone['900'],
+                margin: 0,
+                opacity: captionA,
+                textShadow: '0 4px 16px rgba(0,0,0,0.75)',
+              }}
+            >
+              Talk to them.{' '}
+              <span style={{ fontStyle: 'normal', opacity: talkBackOpacity }}>
+                They'll talk back.
+              </span>
+            </h1>
+          )}
+
+          {/* Phase B */}
+          {captionB > 0.001 && (
+            <h1
+              style={{
+                position: 'absolute', inset: 0,
+                fontFamily: SCLAB_FONTS.serif,
+                fontStyle: 'normal',
+                fontSize: '3rem',
+                lineHeight: 1.05,
+                letterSpacing: '-0.01em',
+                fontWeight: 400,
+                color: SCLAB.bone['900'],
+                margin: 0,
+                opacity: captionB,
+                textShadow: '0 4px 16px rgba(0,0,0,0.75)',
+              }}
+            >
+              Every agent is alive.
+            </h1>
+          )}
+
+          {/* Phase C */}
+          {captionC > 0.001 && (
+            <h1
+              style={{
+                position: 'absolute', inset: 0,
+                fontFamily: SCLAB_FONTS.serif,
+                fontStyle: 'italic',
+                fontSize: '3rem',
+                lineHeight: 1.05,
+                letterSpacing: '-0.01em',
+                fontWeight: 400,
+                color: SCLAB.bone['900'],
+                margin: 0,
+                opacity: captionC,
+                textShadow: '0 4px 16px rgba(0,0,0,0.75)',
+              }}
+            >
+              Every story is different.
+            </h1>
+          )}
+
+          {/* Phase D — three words on a single row, "Deeper truths."
+              pulsates yellow as the punchline. */}
+          {frame >= PHASE_C_END - fadeOverlap / 2 && (() => {
+            const yellowPulse = 0.78 + 0.22 * Math.sin(frame * 0.18);
+            return (
+              <div
+                style={{
+                  position: 'absolute', inset: 0,
+                  display: 'flex',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 28,
+                }}
+              >
+                {dWords.map((w) => {
+                  const opacity = interpolate(frame, [w.start, w.start + w.in], [0, 1], {
+                    extrapolateLeft: 'clamp',
+                    extrapolateRight: 'clamp',
+                  });
+                  const y = interpolate(opacity, [0, 1], [16, 0]);
+                  const isTruths = w.text === 'Deeper truths.';
+                  // Yellow pulse: alpha-blended brightness on a base
+                  // yellow color. Roughly cycles between gold and
+                  // bright pale-yellow.
+                  const yR = Math.round(220 + 35 * yellowPulse);
+                  const yG = Math.round(190 + 50 * yellowPulse);
+                  const yB = Math.round(60 * yellowPulse);
+                  const yellow = `rgb(${yR}, ${yG}, ${yB})`;
+                  return (
+                    <div
+                      key={w.text}
+                      style={{
+                        opacity,
+                        transform: `translateY(${y}px)`,
+                        fontFamily: SCLAB_FONTS.serif,
+                        fontStyle: w.italic ? 'italic' : 'normal',
+                        fontSize: '2.6rem',
+                        lineHeight: 1.05,
+                        letterSpacing: '-0.01em',
+                        fontWeight: isTruths ? 600 : 400,
+                        color: isTruths ? yellow : SCLAB.bone['900'],
+                        textShadow: isTruths
+                          ? `0 4px 16px rgba(0,0,0,0.75), 0 0 ${20 + yellowPulse * 18}px rgba(${yR},${yG},${yB},${0.45 + yellowPulse * 0.3})`
+                          : '0 4px 16px rgba(0,0,0,0.75)',
+                      }}
+                    >
+                      {w.text}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </div>
+      </div>
+
+      {/* Outro static: ramps in over the last 12 frames of S03 so the
+          cut to S07 wipes through TV static, mirroring S01's outro. */}
+      {outroStaticActive && (
+        <AbsoluteFill style={{ pointerEvents: 'none' }}>
+          <ThreeCanvas width={compW} height={compH}>
+            <TitleBackdropShader reveal={0} boost={outroBoost} />
+          </ThreeCanvas>
+        </AbsoluteFill>
+      )}
+
+      {/* Static shader fading out — bridges S01's outro static */}
       {staticActive && (
         <AbsoluteFill style={{ pointerEvents: 'none' }}>
           <ThreeCanvas width={compW} height={compH}>
@@ -1249,154 +1675,13 @@ const Scene03_Conversations: React.FC = () => {
 };
 
 // ============================================================================
-// SCENE 04 — Emergence (split): "Every agent is alive." → "Every story is different."
-// Lean into the LLM angle, then echo the existing tagline.
-// ============================================================================
-const Scene04_Emergence: React.FC = () => {
-  const frame = useCurrentFrame();
-
-  // Two phases:
-  //   first half — "Every agent is alive."  (named agents flicker behind)
-  //   second half — "Every story is different."  (recap-line flicker)
-  const half = Math.floor(D.s04_emergence / 2);
-
-  const cap1Opacity = interpolate(frame, [10, 28, half - 14, half - 2], [0, 1, 1, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const cap2Opacity = interpolate(frame, [half + 6, half + 22, D.s04_emergence - 16, D.s04_emergence - 4], [0, 1, 1, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-
-  const scrim = Math.max(cap1Opacity, cap2Opacity) * 0.55;
-
-  return (
-    <AbsoluteFill style={{ backgroundColor: SCLAB.ink['100'] }}>
-      <FootagePlaceholder label="VIGNETTE CUTS · NAMED AGENTS" hint="capture: 3 different agents, 3 different lines" />
-      <AbsoluteFill style={{ backgroundColor: `rgba(0,0,0,${scrim})`, pointerEvents: 'none' }} />
-
-      {/* Caption A */}
-      {cap1Opacity > 0 && (
-        <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-          <div style={{ textAlign: 'center', opacity: cap1Opacity }}>
-            <HeadlineSerif size="6.5rem">Every agent is alive.</HeadlineSerif>
-          </div>
-        </AbsoluteFill>
-      )}
-
-      {/* Caption B */}
-      {cap2Opacity > 0 && (
-        <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-          <div style={{ textAlign: 'center', opacity: cap2Opacity }}>
-            <HeadlineSerif size="6.5rem" italic>Every story is different.</HeadlineSerif>
-          </div>
-        </AbsoluteFill>
-      )}
-    </AbsoluteFill>
-  );
-};
-
-// ============================================================================
-// SCENE 05 — Bond loop (THE PITCH): "Deeper bonds. Deeper rooms. Deeper truths."
-// The triplet mirrors S02's "Shifts. Stations. Quotas." — same rhythm,
-// trade for trade. Longest beat; load-bearing. Each line drops vertically
-// to imply descent into lower floors.
-// ============================================================================
-const Scene05_BondLoop: React.FC = () => {
-  const frame = useCurrentFrame();
-  const lines = ['Deeper bonds.', 'Deeper rooms.', 'Deeper truths.'];
-
-  // Stagger: each line arrives ~42f after the previous. Tightened for
-  // the 190-frame s05_bondLoop window so the last line still has room
-  // to hold before the scene fades out.
-  const lineTimings = [
-    { start: 8,   in: 14 },
-    { start: 50,  in: 14 },
-    { start: 92,  in: 14 },
-  ];
-
-  const overall = fadeInOut(frame, D.s05_bondLoop, 6, 24);
-  const scrim = interpolate(frame, [10, 50, D.s05_bondLoop - 30, D.s05_bondLoop - 6], [0, 0.6, 0.6, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-
-  return (
-    <AbsoluteFill style={{ backgroundColor: SCLAB.ink['100'] }}>
-      <FootagePlaceholder label="BOND-METER TICKS · ROOM UNLOCKS · CAMERA PANS DOWN" hint="capture: causal chain bond→reveal→build→descent" />
-      <AbsoluteFill style={{ backgroundColor: `rgba(0,0,0,${scrim})`, pointerEvents: 'none' }} />
-
-      <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', opacity: overall }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-          {lines.map((line, i) => {
-            const t = lineTimings[i];
-            const lOpacity = interpolate(frame, [t.start, t.start + t.in], [0, 1], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            });
-            const lY = interpolate(lOpacity, [0, 1], [28, 0]);
-            const isLast = i === lines.length - 1;
-            return (
-              <div key={line} style={{ opacity: lOpacity, transform: `translateY(${lY}px)` }}>
-                <HeadlineSerif size={isLast ? '7rem' : '6rem'} italic={isLast}>
-                  {line}
-                </HeadlineSerif>
-              </div>
-            );
-          })}
-        </div>
-      </AbsoluteFill>
-    </AbsoluteFill>
-  );
-};
-
-// ============================================================================
-// SCENE 06 — Silent tier-up (Castles/FOSH nod for genre viewers)
-// Reuses the existing tier-up motion graphics. Linger long enough that
-// the FOSH/Castles audience recognizes the shape, then cuts.
-// ============================================================================
-const Scene06_TierUpSilent: React.FC = () => {
-  const frame = useCurrentFrame();
-  // Proportional timing so the new-row reveal still lands inside the
-  // shorter window (was hardcoded for a 150f scene).
-  const fillEnd = Math.round(D.s06_tierUp * 0.47);
-  const newRowEnd = Math.round(D.s06_tierUp * 0.74);
-  const fillT = interpolate(frame, [4, fillEnd], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
-  const newRow = interpolate(frame, [fillEnd, newRowEnd], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
-  const overall = fadeInOut(frame, D.s06_tierUp, 10, 14);
-
-  return (
-    <AbsoluteFill style={{ backgroundColor: SCLAB.ink['100'], alignItems: 'center', justifyContent: 'center', opacity: overall }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 36 }}>
-        <Eyebrow opacity={overall}>FACILITY TIER 02 → 03</Eyebrow>
-        <div style={{ width: 420, height: 4, background: SCLAB.bone['300'] }}>
-          <div style={{ width: `${fillT * 100}%`, height: '100%', background: SCLAB.signal['500'] }} />
-        </div>
-        <div style={{ width: 560, display: 'flex', flexDirection: 'column', gap: 5 }}>
-          {[0, 1, 2].map((r) => (
-            <div key={r} style={{ height: 42, border: `1px solid ${SCLAB.bone['300']}` }} />
-          ))}
-          <div style={{
-            height: 42,
-            border: `1px solid ${SCLAB.signal['500']}`,
-            background: `${SCLAB.signal['500']}1f`,
-            opacity: newRow,
-            transform: `translateY(${(1 - newRow) * -10}px)`,
-          }} />
-        </div>
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-// ============================================================================
 // SCENE 07 — Puncture: "Make them remember."
 // Sharp tonal turn. Held face, signal-orange punch on the line, cut to
 // black hand-off into the title return.
 // ============================================================================
 const Scene07_Puncture: React.FC = () => {
   const frame = useCurrentFrame();
+  const { width: compW, height: compH, fps } = useVideoConfig();
   const captionOpacity = interpolate(frame, [40, 60, D.s07_puncture - 20, D.s07_puncture - 4], [0, 1, 1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
@@ -1406,12 +1691,59 @@ const Scene07_Puncture: React.FC = () => {
     extrapolateRight: 'clamp',
   });
 
+  // Static fade-in — bridges S03's outro static (boost ramps 1 → 0
+  // over the first 14 frames of this scene).
+  const S07_STATIC_FADEIN_FRAMES = 14;
+  const staticBoost = interpolate(
+    frame,
+    [0, S07_STATIC_FADEIN_FRAMES],
+    [1, 0],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+  );
+  const staticActive = frame < S07_STATIC_FADEIN_FRAMES + 2;
+
+  // crack.mp4 speed-matched to S07's duration so it plays end-to-end.
+  const sceneDurationS = D.s07_puncture / fps;
+  const crackPlaybackRate = CRACK_DURATION_S / sceneDurationS;
+
+  // Portrait video sized to crack.mp4's phone aspect (474/950).
+  const CRACK_HEIGHT = compH;
+  const CRACK_WIDTH = Math.round(CRACK_HEIGHT * (474 / 950)); // ≈ 539
+  const CRACK_LEFT = Math.round((compW - CRACK_WIDTH) / 2);
+
   return (
     <AbsoluteFill style={{ backgroundColor: SCLAB.ink['100'] }}>
-      <FootagePlaceholder
-        label="HELD FACE · AGENT GLANCES AT CAMERA"
-        hint="capture: one too-long shot of an agent looking back"
-      />
+      {/* Blurred backdrop — crack.mp4 stretched + heavily blurred */}
+      <AbsoluteFill style={{
+        filter: 'blur(48px) brightness(0.55) saturate(1.1)',
+        transform: 'scale(1.12)',
+      }}>
+        <OffthreadVideo
+          src={CRACK_SRC}
+          playbackRate={crackPlaybackRate}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      </AbsoluteFill>
+
+      {/* Portrait crack.mp4 — centered, full height */}
+      <div
+        style={{
+          position: 'absolute',
+          left: CRACK_LEFT,
+          top: 0,
+          width: CRACK_WIDTH,
+          height: CRACK_HEIGHT,
+          overflow: 'hidden',
+          boxShadow: '0 0 120px rgba(0, 0, 0, 0.5)',
+        }}
+      >
+        <OffthreadVideo
+          src={CRACK_SRC}
+          playbackRate={crackPlaybackRate}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      </div>
+
       <AbsoluteFill style={{ backgroundColor: `rgba(0,0,0,${scrim})`, pointerEvents: 'none' }} />
       <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', opacity: captionOpacity }}>
         <div style={{ textAlign: 'center' }}>
@@ -1420,6 +1752,16 @@ const Scene07_Puncture: React.FC = () => {
           </HeadlineSerif>
         </div>
       </AbsoluteFill>
+
+      {/* Static shader fading out — bridges S03's outro static so the
+          cut from S03 → S07 wipes through TV static. */}
+      {staticActive && (
+        <AbsoluteFill style={{ pointerEvents: 'none' }}>
+          <ThreeCanvas width={compW} height={compH}>
+            <TitleBackdropShader reveal={0} boost={staticBoost} />
+          </ThreeCanvas>
+        </AbsoluteFill>
+      )}
     </AbsoluteFill>
   );
 };
@@ -1438,6 +1780,13 @@ const Scene16_TitleReturn: React.FC = () => {
   const frame = useCurrentFrame();
   const titleOpacity = interpolate(frame, [0, 14], [0, 1], { extrapolateRight: 'clamp' });
   const taglineOpacity = interpolate(frame, [20, 40], [0, 1], { extrapolateRight: 'clamp' });
+  // QR + URL fade-in: lands at scene-local frame 82 (= composition
+  // frame 1755 since S16 starts at 1673).
+  const QR_REVEAL_FRAME = 82;
+  const qrOpacity = interpolate(frame, [QR_REVEAL_FRAME, QR_REVEAL_FRAME + 18], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
   return (
     <AbsoluteFill style={{ backgroundColor: COLOR.bg, alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 48 }}>
@@ -1454,25 +1803,45 @@ const Scene16_TitleReturn: React.FC = () => {
           Bond with your agents. Break out of the loop.
         </div>
       </div>
-    </AbsoluteFill>
-  );
-};
 
-// ============================================================================
-// SCENE 17 — Wishlist CTA
-// ============================================================================
-const Scene17_CTA: React.FC = () => {
-  const frame = useCurrentFrame();
-  const opacity = fadeInOut(frame, D.s17_cta, 10, 6);
-  return (
-    <AbsoluteFill style={{ backgroundColor: COLOR.bg, alignItems: 'center', justifyContent: 'center', opacity }}>
-      <div style={{
-        fontFamily: MONO, fontSize: 22, color: COLOR.paper,
-        letterSpacing: '0.4em', textTransform: 'uppercase',
-        padding: '20px 36px', border: `1px solid ${COLOR.paper}`,
-      }}>
-        Wishlist on Steam
-      </div>
+      {/* Lower-right QR code + URL */}
+      {qrOpacity > 0.001 && (
+        <div
+          style={{
+            position: 'absolute',
+            right: 80,
+            bottom: 80,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 14,
+            opacity: qrOpacity,
+            padding: 18,
+            background: 'rgba(255, 255, 255, 0.96)',
+            borderRadius: 8,
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+          }}
+        >
+          <img
+            src={staticFile('trailer/qr-woid.png')}
+            style={{
+              width: 240,
+              height: 240,
+              imageRendering: 'pixelated',
+              display: 'block',
+            }}
+          />
+          <div style={{
+            fontFamily: MONO,
+            fontSize: 18,
+            letterSpacing: '0.18em',
+            color: '#0a0c0e',
+            textTransform: 'uppercase',
+          }}>
+            woid.noods.cc
+          </div>
+        </div>
+      )}
     </AbsoluteFill>
   );
 };
@@ -1506,20 +1875,23 @@ export const TheAgencyTrailer: React.FC = () => {
         <Audio
           src={staticFile('trailer/bg.mp3')}
           startFrom={535 - 97}
-          volume={0.45}
+          // Fade out across the window where S17 used to live —
+          // composition frames 1763..1823 → sequence-local 1405..1465.
+          volume={(f) =>
+            interpolate(f, [0, 1405, 1465], [0.45, 0.45, 0], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            })
+          }
         />
       </Sequence>
 
       {seq(D.s00_opener,         <Scene00_EdiOpener />,         's00', 'S00 · Edi Opener')}
       {seq(D.s01_agencyGameplay, <Scene01_AgencyGameplay />,    's01', 'S01 · Unravel + Shifts/Stations/Quotas')}
-      {seq(D.s03_conversations,  <Scene03_Conversations />,     's03', "S03 · Talk to them")}
-      {seq(D.s04_emergence,      <Scene04_Emergence />,         's04', 'S04 · Every agent is alive')}
-      {seq(D.s05_bondLoop,       <Scene05_BondLoop />,          's05', 'S05 · Deeper bonds')}
-      {seq(D.s06_tierUp,         <Scene06_TierUpSilent />,      's06', 'S06 · Tier-up (silent)')}
+      {seq(D.s03_dialogPhases,   <Scene03_DialogPhases />,      's03', 'S03 · Talk to them → Every agent alive → Deeper bonds')}
       {seq(D.s07_puncture,       <Scene07_Puncture />,          's07', 'S07 · Make them remember')}
       {seq(D.s15_black,          <Scene15_Black />,             's15', 'S15 · Black')}
       {seq(D.s16_titleReturn,    <Scene16_TitleReturn />,       's16', 'S16 · Title return')}
-      {seq(D.s17_cta,            <Scene17_CTA />,               's17', 'S17 · Wishlist CTA')}
     </AbsoluteFill>
   );
 };
