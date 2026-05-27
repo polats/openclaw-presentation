@@ -9,7 +9,7 @@ import { loadFont as loadSpaceGrotesk } from '@remotion/google-fonts/SpaceGrotes
 loadPixelify();
 loadSpaceGrotesk();
 
-const TOTAL_FRAMES = 3030;
+const TOTAL_FRAMES = 2310;
 const FPS = 30;
 
 const SLIDES = [
@@ -21,9 +21,6 @@ const SLIDES = [
   { name: 'Quests', start: 1410, duration: 300 },
   { name: 'Soulcats', start: 1710, duration: 300 },
   { name: 'Play', start: 2010, duration: 300 },
-  { name: 'Agenda', start: 2310, duration: 210 },
-  { name: 'GAME_A_DAY', start: 2520, duration: 300 },
-  { name: 'Details', start: 2820, duration: 210 },
 ];
 
 const SWIPE_THRESHOLD = 50;

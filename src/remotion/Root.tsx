@@ -59,7 +59,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="GibberishPresentation"
         component={GibberishPresentation}
-        durationInFrames={3030}
+        durationInFrames={2310}
         fps={30}
         width={1920}
         height={1080}

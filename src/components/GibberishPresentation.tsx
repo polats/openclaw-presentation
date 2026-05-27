@@ -1,7 +1,6 @@
 import React from 'react';
 import { Sequence, AbsoluteFill } from 'remotion';
 import { TitleSlide } from './TitleSlide';
-import { FeatureSlide } from './FeatureSlide';
 import { StarSlide } from './StarSlide';
 import { ScreenshotSlide } from './ScreenshotSlide';
 import { DualScreenshotSlide } from './DualScreenshotSlide';
@@ -13,19 +12,16 @@ import { MusicatsSlide } from './MusicatsSlide';
 export const GibberishPresentation: React.FC = () => {
   const TITLE_DURATION = 300; // 10 seconds at 30fps (combined stars + title)
   const WHOAMI_DURATION = 210; // 7 seconds
-  const AGENDA_DURATION = 210; // 7 seconds
-  const GAMEDETAILS_DURATION = 210; // 7 seconds
   const SOULCATS_DURATION = 300; // 10 seconds
   const MUSICATS_DURATION = 300; // 10 seconds
   const MUSICATS_GAME_DURATION = 300; // 10 seconds
   const QUESTS_DURATION = 300; // 10 seconds
   const LETSPLAY_DURATION = 300; // 10 seconds
   const HOWTO1_DURATION = 300; // 10 seconds
-  const HOWTO2_DURATION = 300; // 10 seconds
 
   let currentFrame = 0;
 
-  const TOTAL_DURATION = TITLE_DURATION + WHOAMI_DURATION + AGENDA_DURATION + HOWTO2_DURATION + GAMEDETAILS_DURATION + SOULCATS_DURATION + HOWTO1_DURATION + MUSICATS_DURATION + MUSICATS_GAME_DURATION + QUESTS_DURATION + LETSPLAY_DURATION;
+  const TOTAL_DURATION = TITLE_DURATION + WHOAMI_DURATION + SOULCATS_DURATION + MUSICATS_DURATION + MUSICATS_GAME_DURATION + QUESTS_DURATION + LETSPLAY_DURATION + HOWTO1_DURATION;
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#0f1014' }}>
@@ -115,48 +111,6 @@ export const GibberishPresentation: React.FC = () => {
           videoFile="supercell/lets-play-musicats.mp4"
           videoDurationInSeconds={10}
           primaryColor="#BAFF00"
-        />
-      </Sequence>
-
-      {/* Slide 9: Agenda */}
-      {(() => { currentFrame += LETSPLAY_DURATION; return null; })()}
-      <Sequence from={currentFrame} durationInFrames={AGENDA_DURATION}>
-        <FeatureSlide
-          title="Agenda"
-          features={[
-            "r/game_a_day - game ideation / core loops",
-            "soulcats.xyz - agent identity + agentic multiplayer",
-            "musicats.soulcats.space - strudel + UGC + music skills"
-          ]}
-          primaryColor="#BAFF00"
-        />
-      </Sequence>
-
-      {/* Slide 10: r/game_a_day */}
-      {(() => { currentFrame += AGENDA_DURATION; return null; })()}
-      <Sequence from={currentFrame} durationInFrames={HOWTO2_DURATION}>
-        <ScreenshotSlide
-          title="r/game_a_day"
-          imageFile="screenshots/game-a-day.gif"
-          subtitle={<>Game ideation and core loops — a game-a-day on <a href="https://reddit.com/r/game_a_day" target="_blank" rel="noopener noreferrer" style={{ color: '#BAFF00', textDecoration: 'underline', textUnderlineOffset: '6px', fontWeight: 600 }}>reddit.com/r/game_a_day</a></>}
-          primaryColor="#BAFF00"
-          compact
-        />
-      </Sequence>
-
-      {/* Slide 11: r/game_a_day details */}
-      {(() => { currentFrame += HOWTO2_DURATION; return null; })()}
-      <Sequence from={currentFrame} durationInFrames={GAMEDETAILS_DURATION}>
-        <FeatureSlide
-          title="r/game_a_day"
-          features={[
-            "50 games and counting",
-            "Built on GameMaker + Godot, last few games on Godot due to app content delivery",
-            'Game idea voted on by "community"',
-            "Refining an agentic process: research, ideation, iteration"
-          ]}
-          primaryColor="#BAFF00"
-          imageFile="supercell/game-a-day.png"
         />
       </Sequence>
 
