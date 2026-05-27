@@ -3,6 +3,8 @@ import { interpolate, spring, useCurrentFrame, useVideoConfig, AbsoluteFill, sta
 
 export type SoulcatsSlideProps = {
   primaryColor: string;
+  title?: React.ReactNode;
+  subtitle?: React.ReactNode;
 };
 
 const getAssetSrc = (file: string) => {
@@ -13,7 +15,7 @@ const getAssetSrc = (file: string) => {
   return `${basePath}/${file}`;
 };
 
-export const SoulcatsSlide: React.FC<SoulcatsSlideProps> = ({ primaryColor }) => {
+export const SoulcatsSlide: React.FC<SoulcatsSlideProps> = ({ primaryColor, title, subtitle }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -77,7 +79,7 @@ export const SoulcatsSlide: React.FC<SoulcatsSlideProps> = ({ primaryColor }) =>
           position: 'relative',
         }}
       >
-        soulcats.xyz
+        {title ?? 'soulcats.xyz'}
       </h1>
 
       {/* Image + Video side by side */}
@@ -137,10 +139,14 @@ export const SoulcatsSlide: React.FC<SoulcatsSlideProps> = ({ primaryColor }) =>
         position: 'relative',
         textAlign: 'center',
       }}>
-        Agent identity + agentic multiplayer on{' '}
-        <a href="https://soulcats.xyz" target="_blank" rel="noopener noreferrer" style={{ color: primaryColor, textDecoration: 'underline', textUnderlineOffset: '6px', fontWeight: 600 }}>
-          soulcats.xyz
-        </a>
+        {subtitle ?? (
+          <>
+            Agent identity + agentic multiplayer on{' '}
+            <a href="https://soulcats.xyz" target="_blank" rel="noopener noreferrer" style={{ color: primaryColor, textDecoration: 'underline', textUnderlineOffset: '6px', fontWeight: 600 }}>
+              soulcats.xyz
+            </a>
+          </>
+        )}
       </p>
     </AbsoluteFill>
   );

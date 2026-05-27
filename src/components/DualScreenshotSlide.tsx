@@ -1,10 +1,11 @@
 import React from 'react';
 import { interpolate, spring, useCurrentFrame, useVideoConfig, AbsoluteFill, staticFile } from 'remotion';
 
-export type MusicatsSlideProps = {
+export type DualScreenshotSlideProps = {
+  title: string;
+  images: { file: string; alt: string }[];
+  subtitle?: string | React.ReactNode;
   primaryColor: string;
-  title?: React.ReactNode;
-  subtitle?: React.ReactNode;
 };
 
 const getImageSrc = (file: string) => {
@@ -15,13 +16,12 @@ const getImageSrc = (file: string) => {
   return `${basePath}/${file}`;
 };
 
-const IMAGES = [
-  { file: 'supercell/musicats1.png', alt: 'Musicats 1' },
-  { file: 'supercell/musicats2.png', alt: 'Musicats 2' },
-  { file: 'supercell/musicats3.png', alt: 'Musicats 3' },
-];
-
-export const MusicatsSlide: React.FC<MusicatsSlideProps> = ({ primaryColor, title, subtitle }) => {
+export const DualScreenshotSlide: React.FC<DualScreenshotSlideProps> = ({
+  title,
+  images,
+  subtitle,
+  primaryColor,
+}) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -33,6 +33,8 @@ export const MusicatsSlide: React.FC<MusicatsSlideProps> = ({ primaryColor, titl
     from: -30,
     to: 0,
   });
+
+  const subtitleOpacity = interpolate(frame, [30, 45], [0, 1], { extrapolateRight: 'clamp' });
 
   return (
     <AbsoluteFill
@@ -58,7 +60,7 @@ export const MusicatsSlide: React.FC<MusicatsSlideProps> = ({ primaryColor, titl
         style={{
           fontSize: '3rem',
           fontWeight: 800,
-          fontFamily: '"Space Grotesk", Inter, sans-serif',
+          fontFamily: '"Pixelify Sans", Inter, sans-serif',
           textTransform: 'uppercase',
           borderBottom: `4px solid ${primaryColor}`,
           paddingBottom: '12px',
@@ -69,10 +71,10 @@ export const MusicatsSlide: React.FC<MusicatsSlideProps> = ({ primaryColor, titl
           position: 'relative',
         }}
       >
-        {title ?? 'musicats.soulcats.space'}
+        {title}
       </h1>
 
-      {/* 3 images side by side */}
+      {/* Images side by side */}
       <div style={{
         display: 'flex',
         gap: '24px',
@@ -80,7 +82,7 @@ export const MusicatsSlide: React.FC<MusicatsSlideProps> = ({ primaryColor, titl
         position: 'relative',
         minHeight: 0,
       }}>
-        {IMAGES.map((img, i) => {
+        {images.map((img, i) => {
           const imgOpacity = interpolate(frame, [10 + i * 10, 20 + i * 10], [0, 1], { extrapolateRight: 'clamp' });
           const imgScale = spring({
             fps,
@@ -120,24 +122,19 @@ export const MusicatsSlide: React.FC<MusicatsSlideProps> = ({ primaryColor, titl
       </div>
 
       {/* Subtitle */}
-      <p style={{
-        fontSize: '1.8rem',
-        fontWeight: 400,
-        color: 'rgba(255, 255, 255, 0.8)',
-        marginTop: '12px',
-        opacity: interpolate(frame, [30, 45], [0, 1], { extrapolateRight: 'clamp' }),
-        position: 'relative',
-        textAlign: 'center',
-      }}>
-        {subtitle ?? (
-          <>
-            Strudel + UGC + music skills on{' '}
-            <a href="https://musicats.soulcats.space" target="_blank" rel="noopener noreferrer" style={{ color: primaryColor, textDecoration: 'underline', textUnderlineOffset: '6px', fontWeight: 600 }}>
-              musicats.soulcats.space
-            </a>
-          </>
-        )}
-      </p>
+      {subtitle && (
+        <p style={{
+          fontSize: '1.8rem',
+          fontWeight: 400,
+          color: 'rgba(255, 255, 255, 0.8)',
+          marginTop: '12px',
+          opacity: subtitleOpacity,
+          position: 'relative',
+          textAlign: 'center',
+        }}>
+          {subtitle}
+        </p>
+      )}
     </AbsoluteFill>
   );
 };

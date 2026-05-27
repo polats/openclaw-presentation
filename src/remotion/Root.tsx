@@ -4,6 +4,7 @@ import { TitleSlide } from '../components/TitleSlide';
 import { PresentationTimeline } from '../components/PresentationTimeline';
 import { OpenclawPresentation } from '../components/OpenclawPresentation';
 import { SupercellPresentation } from '../components/SupercellPresentation';
+import { GibberishPresentation } from '../components/GibberishPresentation';
 import { StarDamagePresentation, STAR_DAMAGE_TOTAL_FRAMES } from '../components/StarDamagePresentation';
 import { SupercellLabPresentation, SCLAB_TOTAL_FRAMES } from '../components/SupercellLabPresentation';
 import { SupercellLab0429Presentation, SCLAB_0429_TOTAL_FRAMES } from '../components/SupercellLab0429Presentation';
@@ -50,6 +51,15 @@ export const RemotionRoot: React.FC = () => {
         id="SupercellPresentation"
         component={SupercellPresentation}
         durationInFrames={3090}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+
+      <Composition
+        id="GibberishPresentation"
+        component={GibberishPresentation}
+        durationInFrames={3030}
         fps={30}
         width={1920}
         height={1080}
